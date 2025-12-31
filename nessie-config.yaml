@@ -1,0 +1,13 @@
+nessie:
+  catalog:
+    service:
+      s3:
+        default:
+          options:
+            endpoint: "http://minio:9000"
+            path-style-access: "true"
+            region: "us-east-1"
+            credentialType: "default"  # Use default credential chain
+    warehouses:
+      warehouse:
+        location: "s3://warehouse/"
