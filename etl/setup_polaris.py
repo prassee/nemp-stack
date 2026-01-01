@@ -6,8 +6,9 @@ import requests
 import base64
 
 POLARIS_URL = "http://localhost:8181"
-CLIENT_ID = "3b7d7f54dfa1787b"
-CLIENT_SECRET = "2a3b56b83c3777b9fd2fe3d4da64b986"
+# a3cad0a2fd1a31ddv:91d04e5ec30dc740aa3410e322ce7503
+CLIENT_ID = "a3cad0a2fd1a31dd"
+CLIENT_SECRET = "91d04e5ec30dc740aa3410e322ce7503"
 
 
 def get_bearer_token():
@@ -49,8 +50,7 @@ def delete_namespace(token, catalog_name="warehouse", namespace="default"):
         print(f"  Namespace '{namespace}' doesn't exist")
         return True
     else:
-        print(
-            f"  Delete namespace response: {response.status_code} - {response.text}")
+        print(f"  Delete namespace response: {response.status_code} - {response.text}")
         return False
 
 
@@ -71,7 +71,8 @@ def delete_catalog_role(token, catalog_name="warehouse", role_name="admin_role")
         return True
     else:
         print(
-            f"  Delete catalog role response: {response.status_code} - {response.text}")
+            f"  Delete catalog role response: {response.status_code} - {response.text}"
+        )
         return False
 
 
@@ -148,11 +149,9 @@ def create_catalog(token, catalog_name="warehouse"):
             # Use path-style access for MinIO
             "pathStyleAccess": True,
             # AWS region
-            "region": "us-east-1"
+            "region": "us-east-1",
         },
-        "properties": {
-            "default-base-location": "s3://warehouse/"
-        }
+        "properties": {"default-base-location": "s3://warehouse/"},
     }
 
     print(f"  Creating catalog '{catalog_name}'...")
@@ -199,27 +198,35 @@ def grant_catalog_role(token, catalog_name="warehouse"):
     # Grant privileges to the catalog role
     # Grant TABLE_WRITE_DATA, TABLE_CREATE, NAMESPACE_CREATE etc
     privileges = [
-        "TABLE_CREATE", "TABLE_DROP", "TABLE_READ_DATA", "TABLE_WRITE_DATA",
-        "TABLE_READ_PROPERTIES", "TABLE_WRITE_PROPERTIES", "TABLE_LIST",
-        "NAMESPACE_CREATE", "NAMESPACE_DROP", "NAMESPACE_READ_PROPERTIES",
-        "NAMESPACE_WRITE_PROPERTIES", "NAMESPACE_LIST",
-        "VIEW_CREATE", "VIEW_DROP", "VIEW_LIST",
-        "CATALOG_MANAGE_ACCESS", "CATALOG_MANAGE_CONTENT", "CATALOG_MANAGE_METADATA",
-        "TABLE_FULL_METADATA"
+        "TABLE_CREATE",
+        "TABLE_DROP",
+        "TABLE_READ_DATA",
+        "TABLE_WRITE_DATA",
+        "TABLE_READ_PROPERTIES",
+        "TABLE_WRITE_PROPERTIES",
+        "TABLE_LIST",
+        "NAMESPACE_CREATE",
+        "NAMESPACE_DROP",
+        "NAMESPACE_READ_PROPERTIES",
+        "NAMESPACE_WRITE_PROPERTIES",
+        "NAMESPACE_LIST",
+        "VIEW_CREATE",
+        "VIEW_DROP",
+        "VIEW_LIST",
+        "CATALOG_MANAGE_ACCESS",
+        "CATALOG_MANAGE_CONTENT",
+        "CATALOG_MANAGE_METADATA",
+        "TABLE_FULL_METADATA",
     ]
 
     url = f"{POLARIS_URL}/api/management/v1/catalogs/{catalog_name}/catalog-roles/{catalog_role_name}/grants"
     for privilege in privileges:
-        grant_payload = {
-            "type": "catalog",
-            "privilege": privilege
-        }
+        grant_payload = {"type": "catalog", "privilege": privilege}
         response = requests.put(url, headers=headers, json=grant_payload)
         if response.status_code in [200, 201, 204]:
             print(f"    ✓ Granted {privilege}")
         else:
-            print(
-                f"    Warning: Could not grant {privilege}: {response.status_code}")
+            print(f"    Warning: Could not grant {privilege}: {response.status_code}")
 
     # Now assign the catalog role to the service_admin principal role
     url = f"{POLARIS_URL}/api/management/v1/principal-roles/service_admin/catalog-roles/{catalog_name}"
@@ -261,6 +268,7 @@ def main():
     except Exception as e:
         print(f"Error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 

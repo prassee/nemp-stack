@@ -81,7 +81,17 @@ services:
       polaris-db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "http://localhost:8181/iceberg/v1/config/warehouse/default"]
+      test:
+        [
+          "CMD",
+          "curl",
+          "-s",
+          "-o",
+          "/dev/null",
+          "-w",
+          "%{http_code}",
+          "http://localhost:8181/iceberg/v1/config/warehouse/default",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

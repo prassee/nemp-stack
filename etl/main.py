@@ -26,7 +26,7 @@ def get_catalog():
         "uri": "http://localhost:8181/api/catalog",
         # Use 'warehouse' as the catalog name (must exist in Polaris)
         "warehouse": "warehouse",
-        "credential": "3b7d7f54dfa1787b:2a3b56b83c3777b9fd2fe3d4da64b986",
+        "credential": "a3cad0a2fd1a31dd:91d04e5ec30dc740aa3410e322ce7503",
         # Disable vended-credentials since MinIO doesn't support AWS STS
         # "header.X-Iceberg-Access-Delegation": "vended-credentials",
         # OAuth2 scope for Polaris
@@ -56,12 +56,9 @@ def get_catalog():
 def create_example_schema() -> Schema:
     """Define an example Iceberg schema."""
     return Schema(
-        NestedField(field_id=1, name="id",
-                    field_type=LongType(), required=True),
-        NestedField(field_id=2, name="name",
-                    field_type=StringType(), required=True),
-        NestedField(field_id=3, name="value",
-                    field_type=DoubleType(), required=False),
+        NestedField(field_id=1, name="id", field_type=LongType(), required=True),
+        NestedField(field_id=2, name="name", field_type=StringType(), required=True),
+        NestedField(field_id=3, name="value", field_type=DoubleType(), required=False),
         NestedField(
             field_id=4, name="created_at", field_type=TimestampType(), required=False
         ),
@@ -180,9 +177,9 @@ def main():
     print(f"\nTable schema:\n{table.schema()}")
     print(f"\nTable location: {table.metadata.location}")
 
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("✓ Migration to Apache Polaris complete!")
-    print("="*60)
+    print("=" * 60)
     print("\nSummary:")
     print("  - Connected to Apache Polaris REST catalog")
     print("  - Authenticated via OAuth2 (client credentials)")
@@ -194,4 +191,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    catalog = get_catalog()
+    print(f"Catalog: {catalog.name} with props {catalog.properties}")
+    # list_tables(catalog=catalog, namespace="default")
