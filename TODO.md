@@ -10,6 +10,6 @@
 
 ## In Progress
 - [ ] connect to Mysql 
-- [ ] load data to the Mysql Tables
 
 ## Done
+- [x] load data to the Mysql Tables
