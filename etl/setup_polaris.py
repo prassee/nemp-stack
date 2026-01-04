@@ -6,9 +6,9 @@ import requests
 import base64
 
 POLARIS_URL = "http://localhost:8181"
-# a3cad0a2fd1a31ddv:91d04e5ec30dc740aa3410e322ce7503
-CLIENT_ID = "a3cad0a2fd1a31dd"
-CLIENT_SECRET = "91d04e5ec30dc740aa3410e322ce7503"
+# c208b265597a57cc:b0d74647fdc58fa84c6ac099cd34260f
+CLIENT_ID = "c208b265597a57cc"
+CLIENT_SECRET = "b0d74647fdc58fa84c6ac099cd34260f"
 
 
 def get_bearer_token():

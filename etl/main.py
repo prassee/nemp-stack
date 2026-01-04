@@ -26,7 +26,7 @@ def get_catalog():
         "uri": "http://localhost:8181/api/catalog",
         # Use 'warehouse' as the catalog name (must exist in Polaris)
         "warehouse": "warehouse",
-        "credential": "a3cad0a2fd1a31dd:91d04e5ec30dc740aa3410e322ce7503",
+        "credential": "c208b265597a57cc:b0d74647fdc58fa84c6ac099cd34260f",
         # Disable vended-credentials since MinIO doesn't support AWS STS
         # "header.X-Iceberg-Access-Delegation": "vended-credentials",
         # OAuth2 scope for Polaris
@@ -149,9 +149,8 @@ def read_table_data(catalog, namespace: str, table_name: str):
 def main():
     print("Connecting to Apache Polaris catalog...")
     catalog = get_catalog()
-
     print(f"Catalog: {catalog.name} with props {catalog.properties}")
-
+    #
     # Create example schema
     schema = create_example_schema()
 
