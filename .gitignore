@@ -1,2 +1,5 @@
 # Docker compose data directories
 data/
+data-model-app/logs
+data-model-app/logs
+data-model-app/logs
