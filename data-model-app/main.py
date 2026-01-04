@@ -1,5 +1,5 @@
 def main():
-    print("Hello from data-model-app!")
+    print("SQL  Mesh project ")
 
 
 if __name__ == "__main__":
