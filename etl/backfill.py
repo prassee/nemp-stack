@@ -6,6 +6,7 @@ Uses Polars for fast MySQL reads and PyIceberg for writing.
 This module provides functions for backfilling data. CLI is in main.py.
 """
 
+from pyiceberg.table import Table
 from pyiceberg.catalog import Catalog
 import os
 
@@ -66,12 +67,14 @@ def ensure_namespace(catalog, namespace: str) -> None:
         print(f"Created namespace: {namespace}")
 
 
-def create_or_load_table(catalog, namespace: str, table_name: str, arrow_table):
+def create_or_load_table(
+    catalog: Catalog, namespace: str, table_name: str, arrow_table
+):
     """Create a new table or load existing one."""
     table_id = f"{namespace}.{table_name}"
 
     try:
-        iceberg_table = catalog.load_table(table_id)
+        iceberg_table: Table = catalog.load_table(table_id)
         print(f"  Loaded existing table: {table_id}")
     except Exception:
         iceberg_table = catalog.create_table(
