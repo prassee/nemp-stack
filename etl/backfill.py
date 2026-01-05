@@ -6,12 +6,15 @@ Uses Polars for fast MySQL reads and PyIceberg for writing.
 This module provides functions for backfilling data. CLI is in main.py.
 """
 
-from pyiceberg.table import Table
-from pyiceberg.catalog import Catalog
+import logging
 import os
 
 import polars as pl
-from pyiceberg.catalog import load_catalog
+from pyiceberg.catalog import Catalog, load_catalog
+from pyiceberg.table import Table
+
+# Initialize logger for this module
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Configuration (from docker-compose.yml and setup_polaris.py)
@@ -39,32 +42,46 @@ DEFAULT_NAMESPACE = "analytics"
 
 def get_iceberg_catalog() -> Catalog:
     """Create PyIceberg catalog connected to Polaris."""
-    return load_catalog(
-        "polaris",
-        **{
-            "type": "rest",
-            "uri": POLARIS_URI,
-            "credential": POLARIS_CREDENTIAL,
-            "warehouse": "warehouse",
-            "scope": "PRINCIPAL_ROLE:ALL",
-            # S3/MinIO configuration
-            "s3.endpoint": MINIO_ENDPOINT,
-            "s3.access-key-id": MINIO_ACCESS_KEY,
-            "s3.secret-access-key": MINIO_SECRET_KEY,
-            "s3.path-style-access": "true",
-            "s3.region": "us-east-1",
-            # Use FsspecFileIO for S3 access
-            "py-io-impl": "pyiceberg.io.fsspec.FsspecFileIO",
-        },
-    )
+    logger.info("Connecting to Iceberg catalog via Polaris...")
+    try:
+        catalog = load_catalog(
+            "polaris",
+            **{
+                "type": "rest",
+                "uri": POLARIS_URI,
+                "credential": POLARIS_CREDENTIAL,
+                "warehouse": "warehouse",
+                "scope": "PRINCIPAL_ROLE:ALL",
+                # S3/MinIO configuration
+                "s3.endpoint": MINIO_ENDPOINT,
+                "s3.access-key-id": MINIO_ACCESS_KEY,
+                "s3.secret-access-key": MINIO_SECRET_KEY,
+                "s3.path-style-access": "true",
+                "s3.region": "us-east-1",
+                # Use FsspecFileIO for S3 access
+                "py-io-impl": "pyiceberg.io.fsspec.FsspecFileIO",
+            },
+        )
+        logger.info("Successfully connected to Iceberg catalog")
+        return catalog
+    except Exception as e:
+        logger.error(f"Failed to connect to Iceberg catalog: {e}")
+        raise
 
 
 def ensure_namespace(catalog, namespace: str) -> None:
     """Create namespace if it doesn't exist."""
-    namespaces = [ns[0] for ns in catalog.list_namespaces()]
-    if namespace not in namespaces:
-        catalog.create_namespace(namespace)
-        print(f"Created namespace: {namespace}")
+    logger.debug(f"Checking if namespace '{namespace}' exists...")
+    try:
+        namespaces = [ns[0] for ns in catalog.list_namespaces()]
+        if namespace not in namespaces:
+            catalog.create_namespace(namespace)
+            logger.info(f"Created namespace: {namespace}")
+        else:
+            logger.debug(f"Namespace '{namespace}' already exists")
+    except Exception as e:
+        logger.error(f"Error ensuring namespace '{namespace}': {e}")
+        raise
 
 
 def create_or_load_table(
@@ -75,14 +92,19 @@ def create_or_load_table(
 
     try:
         iceberg_table: Table = catalog.load_table(table_id)
-        print(f"  Loaded existing table: {table_id}")
-    except Exception:
-        iceberg_table = catalog.create_table(
-            identifier=table_id,
-            schema=arrow_table.schema,
-            location=f"s3://{MINIO_BUCKET}/{namespace}/{table_name}",
-        )
-        print(f"  Created new table: {table_id}")
+        logger.info(f"Loaded existing table: {table_id}")
+    except Exception as e:
+        logger.debug(f"Table {table_id} does not exist, creating new table...")
+        try:
+            iceberg_table = catalog.create_table(
+                identifier=table_id,
+                schema=arrow_table.schema,
+                location=f"s3://{MINIO_BUCKET}/{namespace}/{table_name}",
+            )
+            logger.info(f"Created new table: {table_id}")
+        except Exception as create_error:
+            logger.error(f"Failed to create table {table_id}: {create_error}")
+            raise
 
     return iceberg_table
 
@@ -103,36 +125,53 @@ def fetch_users() -> pl.DataFrame:
             created_at, updated_at, last_seen_at
         FROM users
     """
-    pl.read_csv()
-    df = pl.read_database_uri(query, MYSQL_URI)
-    print(f"  Fetched {len(df):,} users from MySQL")
-    return df
+    try:
+        logger.debug(f"Fetching users from MySQL: {MYSQL_URI}")
+        df = pl.read_database_uri(query, MYSQL_URI)
+        logger.info(f"Fetched {len(df):,} users from MySQL")
+        return df
+    except Exception as e:
+        logger.error(f"Failed to fetch users from MySQL: {e}")
+        raise
 
 
 def backfill_users(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     """Export users from MySQL to Iceberg table."""
-    print("\n" + "=" * 60)
-    print("Backfill: users")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Backfill: users")
+    logger.info("=" * 60)
 
     # 1. Fetch from MySQL
-    print("\n1. Fetching users from MySQL...")
-    df = fetch_users()
+    logger.info("1. Fetching users from MySQL...")
+    try:
+        df = fetch_users()
+    except Exception as e:
+        logger.error(f"Failed to fetch users: {e}")
+        raise
 
     if df.is_empty():
-        print("   No users found. Skipping.")
+        logger.info("No users found. Skipping.")
         return 0
 
     # 2. Create or load table
-    print("\n2. Creating/loading Iceberg table...")
-    arrow_table = df.to_arrow()
-    iceberg_table = create_or_load_table(catalog, namespace, "users", arrow_table)
+    logger.info("2. Creating/loading Iceberg table...")
+    try:
+        arrow_table = df.to_arrow()
+        logger.debug(f"Converted Polars DataFrame to Arrow table with {arrow_table.num_rows} rows")
+        iceberg_table = create_or_load_table(catalog, namespace, "users", arrow_table)
+    except Exception as e:
+        logger.error(f"Failed to create/load Iceberg table: {e}")
+        raise
 
     # 3. Write data (overwrite mode)
-    print(f"\n3. Writing {len(df):,} rows to Iceberg...")
-    iceberg_table.overwrite(arrow_table)
+    logger.info(f"3. Writing {len(df):,} rows to Iceberg...")
+    try:
+        iceberg_table.overwrite(arrow_table)
+        logger.info(f"Successfully exported {len(df):,} users to {namespace}.users")
+    except Exception as e:
+        logger.error(f"Failed to write data to Iceberg: {e}")
+        raise
 
-    print(f"\n   Exported {len(df):,} users to {namespace}.users")
     return len(df)
 
 
@@ -156,33 +195,51 @@ def fetch_events() -> pl.DataFrame:
             created_at
         FROM events
     """
-    df = pl.read_database_uri(query, MYSQL_URI)
-    print(f"  Fetched {len(df):,} events from MySQL")
-    return df
+    try:
+        logger.debug(f"Fetching events from MySQL: {MYSQL_URI}")
+        df = pl.read_database_uri(query, MYSQL_URI)
+        logger.info(f"Fetched {len(df):,} events from MySQL")
+        return df
+    except Exception as e:
+        logger.error(f"Failed to fetch events from MySQL: {e}")
+        raise
 
 
 def backfill_events(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     """Export events from MySQL to Iceberg table."""
-    print("\n" + "=" * 60)
-    print("Backfill: events")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("Backfill: events")
+    logger.info("=" * 60)
 
     # 1. Fetch from MySQL
-    print("\n1. Fetching events from MySQL...")
-    df = fetch_events()
+    logger.info("1. Fetching events from MySQL...")
+    try:
+        df = fetch_events()
+    except Exception as e:
+        logger.error(f"Failed to fetch events: {e}")
+        raise
 
     if df.is_empty():
-        print("   No events found. Skipping.")
+        logger.info("No events found. Skipping.")
         return 0
 
     # 2. Create or load table
-    print("\n2. Creating/loading Iceberg table...")
-    arrow_table = df.to_arrow()
-    iceberg_table = create_or_load_table(catalog, namespace, "events", arrow_table)
+    logger.info("2. Creating/loading Iceberg table...")
+    try:
+        arrow_table = df.to_arrow()
+        logger.debug(f"Converted Polars DataFrame to Arrow table with {arrow_table.num_rows} rows")
+        iceberg_table = create_or_load_table(catalog, namespace, "events", arrow_table)
+    except Exception as e:
+        logger.error(f"Failed to create/load Iceberg table: {e}")
+        raise
 
     # 3. Write data (overwrite mode)
-    print(f"\n3. Writing {len(df):,} rows to Iceberg...")
-    iceberg_table.overwrite(arrow_table)
+    logger.info(f"3. Writing {len(df):,} rows to Iceberg...")
+    try:
+        iceberg_table.overwrite(arrow_table)
+        logger.info(f"Successfully exported {len(df):,} events to {namespace}.events")
+    except Exception as e:
+        logger.error(f"Failed to write data to Iceberg: {e}")
+        raise
 
-    print(f"\n   Exported {len(df):,} events to {namespace}.events")
     return len(df)
