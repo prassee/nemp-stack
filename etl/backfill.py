@@ -44,7 +44,7 @@ def get_iceberg_catalog() -> Catalog:
     """Create PyIceberg catalog connected to Polaris."""
     logger.info("Connecting to Iceberg catalog via Polaris...")
     try:
-        catalog = load_catalog(
+        catalog: Catalog = load_catalog(
             "polaris",
             **{
                 "type": "rest",
@@ -69,7 +69,7 @@ def get_iceberg_catalog() -> Catalog:
         raise
 
 
-def ensure_namespace(catalog, namespace: str) -> None:
+def ensure_namespace(catalog: Catalog, namespace: str) -> None:
     """Create namespace if it doesn't exist."""
     logger.debug(f"Checking if namespace '{namespace}' exists...")
     try:
@@ -135,7 +135,7 @@ def fetch_users() -> pl.DataFrame:
         raise
 
 
-def backfill_users(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
+def backfill_users(catalog: Catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     """Export users from MySQL to Iceberg table."""
     logger.info("=" * 60)
     logger.info("Backfill: users")
@@ -157,7 +157,9 @@ def backfill_users(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     logger.info("2. Creating/loading Iceberg table...")
     try:
         arrow_table = df.to_arrow()
-        logger.debug(f"Converted Polars DataFrame to Arrow table with {arrow_table.num_rows} rows")
+        logger.debug(
+            f"Converted Polars DataFrame to Arrow table with {arrow_table.num_rows} rows"
+        )
         iceberg_table = create_or_load_table(catalog, namespace, "users", arrow_table)
     except Exception as e:
         logger.error(f"Failed to create/load Iceberg table: {e}")
@@ -166,7 +168,7 @@ def backfill_users(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     # 3. Write data (overwrite mode)
     logger.info(f"3. Writing {len(df):,} rows to Iceberg...")
     try:
-        iceberg_table.overwrite(arrow_table)
+        iceberg_table.append(arrow_table)
         logger.info(f"Successfully exported {len(df):,} users to {namespace}.users")
     except Exception as e:
         logger.error(f"Failed to write data to Iceberg: {e}")
@@ -205,12 +207,11 @@ def fetch_events() -> pl.DataFrame:
         raise
 
 
-def backfill_events(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
+def backfill_events(catalog: Catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     """Export events from MySQL to Iceberg table."""
     logger.info("=" * 60)
     logger.info("Backfill: events")
     logger.info("=" * 60)
-
     # 1. Fetch from MySQL
     logger.info("1. Fetching events from MySQL...")
     try:
@@ -227,7 +228,9 @@ def backfill_events(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     logger.info("2. Creating/loading Iceberg table...")
     try:
         arrow_table = df.to_arrow()
-        logger.debug(f"Converted Polars DataFrame to Arrow table with {arrow_table.num_rows} rows")
+        logger.debug(
+            f"Converted Polars DataFrame to Arrow table with {arrow_table.num_rows} rows"
+        )
         iceberg_table = create_or_load_table(catalog, namespace, "events", arrow_table)
     except Exception as e:
         logger.error(f"Failed to create/load Iceberg table: {e}")
@@ -236,7 +239,7 @@ def backfill_events(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     # 3. Write data (overwrite mode)
     logger.info(f"3. Writing {len(df):,} rows to Iceberg...")
     try:
-        iceberg_table.overwrite(arrow_table)
+        iceberg_table.append(arrow_table)
         logger.info(f"Successfully exported {len(df):,} events to {namespace}.events")
     except Exception as e:
         logger.error(f"Failed to write data to Iceberg: {e}")
