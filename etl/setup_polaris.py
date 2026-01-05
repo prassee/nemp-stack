@@ -1,17 +1,20 @@
-#!/usr/bin/env python3
 """
-Setup script to create Polaris catalog and warehouse.
+Polaris catalog setup module.
+
+Provides functions to create and configure Polaris catalogs with S3/MinIO storage.
+CLI is in main.py.
 """
-import requests
+
 import base64
 
+import requests
+
 POLARIS_URL = "http://localhost:8181"
-# c208b265597a57cc:b0d74647fdc58fa84c6ac099cd34260f
 CLIENT_ID = "c208b265597a57cc"
 CLIENT_SECRET = "b0d74647fdc58fa84c6ac099cd34260f"
 
 
-def get_bearer_token():
+def get_bearer_token() -> str:
     """Get OAuth2 bearer token from Polaris."""
     token_url = f"{POLARIS_URL}/api/catalog/v1/oauth/tokens"
 
@@ -34,7 +37,9 @@ def get_bearer_token():
     return token_data["access_token"]
 
 
-def delete_namespace(token, catalog_name="warehouse", namespace="default"):
+def delete_namespace(
+    token: str, catalog_name: str = "warehouse", namespace: str = "default"
+) -> bool:
     """Delete a namespace from a catalog using the Iceberg REST API."""
     url = f"{POLARIS_URL}/api/catalog/v1/{catalog_name}/namespaces/{namespace}"
 
@@ -44,7 +49,7 @@ def delete_namespace(token, catalog_name="warehouse", namespace="default"):
 
     response = requests.delete(url, headers=headers)
     if response.status_code == 204:
-        print(f"  ✓ Deleted namespace '{namespace}'")
+        print(f"  Deleted namespace '{namespace}'")
         return True
     elif response.status_code == 404:
         print(f"  Namespace '{namespace}' doesn't exist")
@@ -54,7 +59,9 @@ def delete_namespace(token, catalog_name="warehouse", namespace="default"):
         return False
 
 
-def delete_catalog_role(token, catalog_name="warehouse", role_name="admin_role"):
+def delete_catalog_role(
+    token: str, catalog_name: str = "warehouse", role_name: str = "admin_role"
+) -> bool:
     """Delete a catalog role."""
     url = f"{POLARIS_URL}/api/management/v1/catalogs/{catalog_name}/catalog-roles/{role_name}"
 
@@ -64,7 +71,7 @@ def delete_catalog_role(token, catalog_name="warehouse", role_name="admin_role")
 
     response = requests.delete(url, headers=headers)
     if response.status_code == 204:
-        print(f"  ✓ Deleted catalog role '{role_name}'")
+        print(f"  Deleted catalog role '{role_name}'")
         return True
     elif response.status_code == 404:
         print(f"  Catalog role '{role_name}' doesn't exist")
@@ -76,7 +83,7 @@ def delete_catalog_role(token, catalog_name="warehouse", role_name="admin_role")
         return False
 
 
-def delete_catalog(token, catalog_name="warehouse"):
+def delete_catalog(token: str, catalog_name: str = "warehouse") -> bool:
     """Delete a catalog in Polaris (must be empty first)."""
     # First try to delete the default namespace
     delete_namespace(token, catalog_name, "default")
@@ -91,7 +98,7 @@ def delete_catalog(token, catalog_name="warehouse"):
 
     response = requests.delete(url, headers=headers)
     if response.status_code == 204:
-        print(f"  ✓ Deleted catalog '{catalog_name}'")
+        print(f"  Deleted catalog '{catalog_name}'")
         return True
     elif response.status_code == 404:
         print(f"  Catalog '{catalog_name}' doesn't exist")
@@ -101,7 +108,7 @@ def delete_catalog(token, catalog_name="warehouse"):
         return False
 
 
-def list_catalogs(token):
+def list_catalogs(token: str) -> dict:
     """List available catalogs in Polaris."""
     url = f"{POLARIS_URL}/api/management/v1/catalogs"
 
@@ -124,7 +131,7 @@ def list_catalogs(token):
     return data
 
 
-def create_catalog(token, catalog_name="warehouse"):
+def create_catalog(token: str, catalog_name: str = "warehouse") -> bool:
     """Create a catalog in Polaris using the management API."""
     url = f"{POLARIS_URL}/api/management/v1/catalogs"
 
@@ -135,7 +142,6 @@ def create_catalog(token, catalog_name="warehouse"):
 
     # Polaris catalog creation payload format
     # Use S3 storage type with stsUnavailable=true for MinIO (no STS credential vending)
-    # See: https://github.com/apache/polaris/blob/main/spec/polaris-management-service.yml
     payload = {
         "name": catalog_name,
         "type": "INTERNAL",
@@ -163,10 +169,10 @@ def create_catalog(token, catalog_name="warehouse"):
     print(f"  Response body: {response.text}")
 
     if response.status_code == 409:
-        print(f"  ✓ Catalog '{catalog_name}' already exists")
+        print(f"  Catalog '{catalog_name}' already exists")
         return True
     elif response.status_code in [200, 201]:
-        print(f"  ✓ Created catalog: {catalog_name}")
+        print(f"  Created catalog: {catalog_name}")
         return True
     else:
         response.raise_for_status()
@@ -174,7 +180,7 @@ def create_catalog(token, catalog_name="warehouse"):
     return True
 
 
-def grant_catalog_role(token, catalog_name="warehouse"):
+def grant_catalog_role(token: str, catalog_name: str = "warehouse") -> bool:
     """Grant catalog admin role to the root principal for full permissions."""
     headers = {
         "Authorization": f"Bearer {token}",
@@ -193,10 +199,9 @@ def grant_catalog_role(token, catalog_name="warehouse"):
     print(f"    Response: {response.status_code} - {response.text}")
 
     if response.status_code not in [200, 201, 409]:
-        print(f"    Warning: Could not create catalog role")
+        print("    Warning: Could not create catalog role")
 
     # Grant privileges to the catalog role
-    # Grant TABLE_WRITE_DATA, TABLE_CREATE, NAMESPACE_CREATE etc
     privileges = [
         "TABLE_CREATE",
         "TABLE_DROP",
@@ -224,7 +229,7 @@ def grant_catalog_role(token, catalog_name="warehouse"):
         grant_payload = {"type": "catalog", "privilege": privilege}
         response = requests.put(url, headers=headers, json=grant_payload)
         if response.status_code in [200, 201, 204]:
-            print(f"    ✓ Granted {privilege}")
+            print(f"    Granted {privilege}")
         else:
             print(f"    Warning: Could not grant {privilege}: {response.status_code}")
 
@@ -237,44 +242,3 @@ def grant_catalog_role(token, catalog_name="warehouse"):
     print(f"    Response: {response.status_code} - {response.text}")
 
     return True
-
-
-def main():
-    """Main setup function."""
-    print("Setting up Polaris...")
-
-    try:
-        print("1. Getting OAuth2 token...")
-        token = get_bearer_token()
-        print(f"   ✓ Got token: {token[:20]}...")
-
-        print("2. Listing existing catalogs...")
-        list_catalogs(token)
-
-        print("3. Deleting existing 'warehouse' catalog (if exists)...")
-        delete_catalog(token, "warehouse")
-
-        print("4. Creating 'warehouse' catalog with FILE storage...")
-        create_catalog(token, "warehouse")
-
-        print("5. Granting permissions to catalog...")
-        grant_catalog_role(token, "warehouse")
-
-        print("6. Verifying catalog was created...")
-        list_catalogs(token)
-
-        print("\n✓ Setup complete! You can now run main.py")
-
-    except Exception as e:
-        print(f"Error: {e}")
-        import traceback
-
-        traceback.print_exc()
-        return False
-
-    return True
-
-
-if __name__ == "__main__":
-    success = main()
-    exit(0 if success else 1)

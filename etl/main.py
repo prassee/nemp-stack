@@ -1,196 +1,212 @@
-from pyiceberg.catalog import load_catalog
-from pyiceberg.schema import Schema
-from pyiceberg.types import (
-    NestedField,
-    StringType,
-    LongType,
-    TimestampType,
-    DoubleType,
+#!/usr/bin/env python3
+"""
+ETL Pipeline CLI
+
+Unified command-line interface for:
+- Setting up Polaris catalog
+- Backfilling MySQL data to Iceberg
+
+Usage:
+    python main.py setup              # Setup Polaris catalog
+    python main.py backfill           # Export all tables (users, events)
+    python main.py backfill users     # Export only users
+    python main.py backfill events    # Export only events
+    python main.py --help             # Show help
+"""
+
+from typing import Optional
+
+import typer
+
+from backfill import (
+    DEFAULT_NAMESPACE,
+    MINIO_BUCKET,
+    MINIO_ENDPOINT,
+    MYSQL_URI,
+    POLARIS_URI,
+    backfill_events,
+    backfill_users,
+    ensure_namespace,
+    get_iceberg_catalog,
+)
+from setup_polaris import (
+    create_catalog,
+    delete_catalog,
+    get_bearer_token,
+    grant_catalog_role,
+    list_catalogs,
+)
+
+app = typer.Typer(
+    name="etl",
+    help="ETL Pipeline: MySQL -> Iceberg via Polaris",
+    add_completion=False,
 )
 
 
-def get_catalog():
-    """Create a catalog connection to Apache Polaris with MinIO as storage backend.
+# =============================================================================
+# Setup Commands
+# =============================================================================
 
-    Based on PyIceberg configuration documentation:
-    https://py.iceberg.apache.org/configuration/#apache-polaris
 
-    NOTE: Polaris requires a catalog to exist before connecting.
-    We demonstrate auth works before hitting the warehouse requirement.
+@app.command()
+def setup(
+    catalog_name: str = typer.Option(
+        "warehouse", "--catalog", "-c", help="Catalog name to create"
+    ),
+    force: bool = typer.Option(
+        False, "--force", "-f", help="Delete existing catalog before creating"
+    ),
+):
     """
-    # Apache Polaris catalog configuration
-    # Note: Credentials in format client_id:client_secret
-    # Auto-generated root credentials from Polaris startup
-    catalog_config = {
-        "type": "rest",
-        "uri": "http://localhost:8181/api/catalog",
-        # Use 'warehouse' as the catalog name (must exist in Polaris)
-        "warehouse": "warehouse",
-        "credential": "c208b265597a57cc:b0d74647fdc58fa84c6ac099cd34260f",
-        # Disable vended-credentials since MinIO doesn't support AWS STS
-        # "header.X-Iceberg-Access-Delegation": "vended-credentials",
-        # OAuth2 scope for Polaris
-        "scope": "PRINCIPAL_ROLE:ALL",
-        # S3/MinIO configuration - client will use these directly
-        "s3.endpoint": "http://localhost:9000",
-        "s3.region": "us-east-1",
-        "s3.path-style-access": "true",
-        "s3.access-key-id": "minioadmin",
-        "s3.secret-access-key": "minioadmin",
-        # Use FsspecFileIO for S3 access
-        "py-io-impl": "pyiceberg.io.fsspec.FsspecFileIO",
-    }
+    Setup Polaris catalog with proper permissions.
+
+    Creates a new catalog in Polaris with S3/MinIO storage backend
+    and grants necessary permissions for table operations.
+    """
+    typer.echo("Setting up Polaris...")
 
     try:
-        catalog = load_catalog("polaris", **catalog_config)
-        print("Successfully connected to Apache Polaris catalog")
-        return catalog
-    except Exception as e:
-        print(f"Error connecting to catalog: {e}")
-        print("\n✓ Authentication successful (OAuth2 working)")
-        print("  Issue: Polaris catalog 'warehouse' does not exist")
-        print("  Next step: Create a catalog via Polaris admin API or CLI")
-        raise
+        typer.echo("1. Getting OAuth2 token...")
+        token = get_bearer_token()
+        typer.echo(f"   Got token: {token[:20]}...")
 
+        typer.echo("\n2. Listing existing catalogs...")
+        list_catalogs(token)
 
-def create_example_schema() -> Schema:
-    """Define an example Iceberg schema."""
-    return Schema(
-        NestedField(field_id=1, name="id", field_type=LongType(), required=True),
-        NestedField(field_id=2, name="name", field_type=StringType(), required=True),
-        NestedField(field_id=3, name="value", field_type=DoubleType(), required=False),
-        NestedField(
-            field_id=4, name="created_at", field_type=TimestampType(), required=False
-        ),
-    )
-
-
-def register_table(catalog, namespace: str, table_name: str, schema: Schema):
-    """Register a new Iceberg table in the Polaris catalog."""
-    # Create namespace if it doesn't exist
-    try:
-        catalog.create_namespace(namespace)
-        print(f"Created namespace: {namespace}")
-    except Exception as e:
-        if "already exists" in str(e).lower():
-            print(f"Namespace '{namespace}' already exists")
+        if force:
+            typer.echo(f"\n3. Deleting existing '{catalog_name}' catalog...")
+            delete_catalog(token, catalog_name)
         else:
-            raise e
+            typer.echo("\n3. Skipping delete (use --force to delete existing catalog)")
 
-    # Create the table
-    table_identifier = f"{namespace}.{table_name}"
-    try:
-        table = catalog.create_table(
-            identifier=table_identifier,
-            schema=schema,
-        )
-        print(f"Created table: {table_identifier}")
-        return table
+        typer.echo(f"\n4. Creating '{catalog_name}' catalog...")
+        create_catalog(token, catalog_name)
+
+        typer.echo("\n5. Granting permissions to catalog...")
+        grant_catalog_role(token, catalog_name)
+
+        typer.echo("\n6. Verifying catalog was created...")
+        list_catalogs(token)
+
+        typer.echo(typer.style("\nSetup complete!", fg=typer.colors.GREEN, bold=True))
+
     except Exception as e:
-        if "already exists" in str(e).lower():
-            print(f"Table '{table_identifier}' already exists")
-            return catalog.load_table(table_identifier)
-        else:
-            raise e
+        typer.echo(typer.style(f"Error: {e}", fg=typer.colors.RED), err=True)
+        raise typer.Exit(code=1)
 
 
-def list_tables(catalog, namespace: str):
-    """List all tables in a namespace."""
-    tables = catalog.list_tables(namespace)
-    print(f"Tables in '{namespace}': {tables}")
-    return tables
+# =============================================================================
+# Backfill Commands
+# =============================================================================
 
 
-def write_sample_data(catalog, namespace: str, table_name: str):
-    """Write sample data to the table."""
-    import pyarrow as pa
-    from datetime import datetime
+@app.command()
+def backfill(
+    table: Optional[str] = typer.Argument(
+        None,
+        help="Table to export: 'users', 'events', or omit for all",
+    ),
+    namespace: str = typer.Option(
+        DEFAULT_NAMESPACE,
+        "--namespace",
+        "-n",
+        help="Iceberg namespace to export to",
+    ),
+):
+    """
+    Export MySQL tables to Iceberg.
 
-    table_identifier = (namespace, table_name)
-    table = catalog.load_table(table_identifier)
+    Reads data from MySQL using Polars and writes to Iceberg tables
+    stored on MinIO via the Polaris catalog.
 
-    # Create sample data matching the Iceberg schema
-    # Using the exact PyArrow schema to match Iceberg schema
-    iceberg_schema = table.schema()
-    arrow_schema = iceberg_schema.as_arrow()
-
-    # Prepare data matching the schema
-    data = pa.table(
-        {
-            "id": [1, 2, 3],
-            "name": ["Alice", "Bob", "Charlie"],
-            "value": [95.5, 87.3, 92.1],
-            "created_at": [
-                datetime(2024, 1, 1, 10, 0, 0),
-                datetime(2024, 1, 2, 11, 30, 0),
-                datetime(2024, 1, 3, 14, 45, 0),
-            ],
-        },
-        schema=arrow_schema,
-    )
-
-    # Write to table
-    table.append(data)
-    print(f"✓ Wrote {len(data)} rows to {namespace}.{table_name}")
-
-
-def read_table_data(catalog, namespace: str, table_name: str):
-    """Read data from the table."""
-    table_identifier = (namespace, table_name)
-    table = catalog.load_table(table_identifier)
-
-    # Read all data
-    df = table.scan().to_pandas()
-    print(f"\nData in {namespace}.{table_name}:")
-    print(df)
-    return df
-
-
-def main():
-    print("Connecting to Apache Polaris catalog...")
-    catalog = get_catalog()
-    print(f"Catalog: {catalog.name} with props {catalog.properties}")
-    #
-    # Create example schema
-    schema = create_example_schema()
-
-    # First drop the existing table if it exists, to start fresh
-    namespace = "default"
-    table_name = "example_table"
-    table_identifier = (namespace, table_name)
+    Examples:
+        python main.py backfill              # Export all tables
+        python main.py backfill users        # Export only users
+        python main.py backfill events       # Export only events
+        python main.py backfill -n myns      # Export to custom namespace
+    """
+    typer.echo("=" * 60)
+    typer.echo("MySQL -> Iceberg Backfill")
+    typer.echo("=" * 60)
+    typer.echo(f"\nConfiguration:")
+    typer.echo(f"  MySQL:     {MYSQL_URI}")
+    typer.echo(f"  Polaris:   {POLARIS_URI}")
+    typer.echo(f"  MinIO:     {MINIO_ENDPOINT}")
+    typer.echo(f"  Bucket:    {MINIO_BUCKET}")
+    typer.echo(f"  Namespace: {namespace}")
 
     try:
-        catalog.drop_table(table_identifier)
-        print(f"Dropped existing table '{namespace}.{table_name}'")
-    except Exception:
-        pass  # Table doesn't exist
+        # Connect to catalog
+        typer.echo("\nConnecting to Polaris catalog...")
+        catalog = get_iceberg_catalog()
 
-    # Register a new table
-    register_table(catalog, namespace, table_name, schema)
+        # Ensure namespace exists
+        typer.echo(f"Ensuring namespace '{namespace}' exists...")
+        ensure_namespace(catalog, namespace)
 
-    # List tables
-    list_tables(catalog, namespace)
+        # Determine which tables to export
+        if table is None:
+            # Export all tables
+            users_count = backfill_users(catalog, namespace)
+            events_count = backfill_events(catalog, namespace)
 
-    # Load and show table info
-    table = catalog.load_table(table_identifier)
-    print(f"\nTable schema:\n{table.schema()}")
-    print(f"\nTable location: {table.metadata.location}")
+            typer.echo("\n" + "=" * 60)
+            typer.echo(
+                typer.style("Backfill Complete", fg=typer.colors.GREEN, bold=True)
+            )
+            typer.echo("=" * 60)
+            typer.echo(f"\nExported to namespace: {namespace}")
+            typer.echo(f"  - users:  {users_count:,} rows")
+            typer.echo(f"  - events: {events_count:,} rows")
+            typer.echo(f"\nLocation: s3://{MINIO_BUCKET}/{namespace}/")
 
-    print("\n" + "=" * 60)
-    print("✓ Migration to Apache Polaris complete!")
-    print("=" * 60)
-    print("\nSummary:")
-    print("  - Connected to Apache Polaris REST catalog")
-    print("  - Authenticated via OAuth2 (client credentials)")
-    print("  - Created namespace: default")
-    print("  - Created table: default.example_table")
-    print("  - Table stored at: s3://warehouse/")
-    print("\nNOTE: Data writes require network access to MinIO from client.")
-    print("      The catalog is configured with internal Docker network endpoint.")
+        elif table.lower() == "users":
+            count = backfill_users(catalog, namespace)
+            typer.echo(
+                typer.style(f"\nExported {count:,} users", fg=typer.colors.GREEN)
+            )
+
+        elif table.lower() == "events":
+            count = backfill_events(catalog, namespace)
+            typer.echo(
+                typer.style(f"\nExported {count:,} events", fg=typer.colors.GREEN)
+            )
+
+        else:
+            typer.echo(
+                typer.style(f"Unknown table: {table}", fg=typer.colors.RED), err=True
+            )
+            typer.echo("Available tables: users, events")
+            raise typer.Exit(code=1)
+
+    except Exception as e:
+        typer.echo(typer.style(f"Error: {e}", fg=typer.colors.RED), err=True)
+        raise typer.Exit(code=1)
+
+
+# =============================================================================
+# Info Command
+# =============================================================================
+
+
+@app.command()
+def info():
+    """
+    Show current configuration.
+    """
+    typer.echo("ETL Pipeline Configuration")
+    typer.echo("=" * 40)
+    typer.echo(f"\nMySQL:")
+    typer.echo(f"  URI: {MYSQL_URI}")
+    typer.echo(f"\nPolaris:")
+    typer.echo(f"  URI: {POLARIS_URI}")
+    typer.echo(f"\nMinIO/S3:")
+    typer.echo(f"  Endpoint: {MINIO_ENDPOINT}")
+    typer.echo(f"  Bucket:   {MINIO_BUCKET}")
+    typer.echo(f"\nDefaults:")
+    typer.echo(f"  Namespace: {DEFAULT_NAMESPACE}")
 
 
 if __name__ == "__main__":
-    # main()
-    catalog = get_catalog()
-    print(f"Catalog: {catalog.name} with props {catalog.properties}")
-    # list_tables(catalog=catalog, namespace="default")
+    app()

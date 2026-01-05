@@ -7,4 +7,10 @@ requires-python = ">=3.13"
 dependencies = [
     "pyiceberg[pyarrow,s3fs]>=0.7.0",
     "requests>=2.32.5",
+    "polars>=1.0.0",
+    "connectorx>=0.3.0",
+    "typer>=0.12.0",
 ]
+
+[project.scripts]
+etl = "main:app"
