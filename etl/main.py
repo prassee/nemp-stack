@@ -140,7 +140,6 @@ def backfill(
         # Connect to catalog
         typer.echo("\nConnecting to Polaris catalog...")
         catalog = get_iceberg_catalog()
-
         # Ensure namespace exists
         typer.echo(f"Ensuring namespace '{namespace}' exists...")
         ensure_namespace(catalog, namespace)

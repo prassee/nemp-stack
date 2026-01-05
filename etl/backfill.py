@@ -6,6 +6,7 @@ Uses Polars for fast MySQL reads and PyIceberg for writing.
 This module provides functions for backfilling data. CLI is in main.py.
 """
 
+from pyiceberg.catalog import Catalog
 import os
 
 import polars as pl
@@ -35,7 +36,7 @@ POLARIS_CREDENTIAL = os.getenv(
 DEFAULT_NAMESPACE = "analytics"
 
 
-def get_iceberg_catalog():
+def get_iceberg_catalog() -> Catalog:
     """Create PyIceberg catalog connected to Polaris."""
     return load_catalog(
         "polaris",
