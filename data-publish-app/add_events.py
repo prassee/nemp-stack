@@ -2,10 +2,17 @@ import json
 import random
 import uuid
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 import mysql.connector
+from faker import Faker
 
 from ddl import get_connection
+
+# Initialize Faker with Indian locale
+fake = Faker("en_IN")
+Faker.seed(42)
+random.seed(42)
 
 # Event names for a typical mobile app
 EVENT_NAMES = [
@@ -32,23 +39,23 @@ EVENT_NAMES = [
 ]
 
 # Event weights (some events happen more frequently)
-EVENT_WEIGHTS = [
-    15,  # app_open
-    12,  # app_close
-    20,  # screen_view
-    15,  # button_click
-    8,  # search
-    10,  # view_item
-    5,  # add_to_cart
-    2,  # remove_from_cart
-    2,  # begin_checkout
-    1,  # purchase
-    1,  # sign_up
-    3,  # login
-    2,  # logout
-    1,  # share
+EVENT_WEIGHTS: list[float] = [
+    15.0,  # app_open
+    12.0,  # app_close
+    20.0,  # screen_view
+    15.0,  # button_click
+    8.0,  # search
+    10.0,  # view_item
+    5.0,  # add_to_cart
+    2.0,  # remove_from_cart
+    2.0,  # begin_checkout
+    1.0,  # purchase
+    1.0,  # sign_up
+    3.0,  # login
+    2.0,  # logout
+    1.0,  # share
     0.5,  # rate_app
-    1,  # notification_received
+    1.0,  # notification_received
     0.5,  # notification_opened
     0.5,  # profile_update
     0.3,  # settings_change
@@ -76,16 +83,11 @@ SCREEN_NAMES = [
 ANDROID_VERSIONS = ["12", "13", "14"]
 IOS_VERSIONS = ["16.0", "16.5", "17.0", "17.1", "17.2"]
 
-
-def generate_ip_address() -> str:
-    """Generate a random Indian IP address."""
-    # Common Indian IP ranges
-    prefixes = ["103.", "106.", "117.", "122.", "182.", "183.", "202.", "203."]
-    prefix = random.choice(prefixes)
-    return f"{prefix}{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+# Error codes (keeping these as they represent realistic error patterns)
+ERROR_CODES = ["E001", "E002", "E003", "E404", "E500"]
 
 
-def generate_event(user: dict, event_time: datetime) -> dict:
+def generate_event(user: dict[str, Any], event_time: datetime) -> dict[str, Any]:
     """Generate a single event record based on user data."""
     event_name = random.choices(EVENT_NAMES, weights=EVENT_WEIGHTS, k=1)[0]
 
@@ -99,24 +101,18 @@ def generate_event(user: dict, event_time: datetime) -> dict:
     device_id = str(uuid.uuid4())
 
     # Build event properties based on event type
-    properties = {}
+    properties: dict[str, str] = {}
     revenue = None
     currency_code = None
 
     if event_name == "screen_view":
         properties["screen_name"] = random.choice(SCREEN_NAMES)
     elif event_name == "search":
-        properties["search_term"] = random.choice(
-            ["shoes", "phone", "laptop", "watch", "shirt", "bag"]
-        )
+        properties["search_term"] = fake.word()
     elif event_name == "view_item":
         properties["item_id"] = f"PROD_{random.randint(1000, 9999)}"
-        properties["item_name"] = random.choice(
-            ["Running Shoes", "Smartphone", "Laptop", "Smart Watch", "T-Shirt"]
-        )
-        properties["item_category"] = random.choice(
-            ["Electronics", "Fashion", "Sports", "Home"]
-        )
+        properties["item_name"] = fake.catch_phrase()
+        properties["item_category"] = fake.word().capitalize()
     elif event_name in ["add_to_cart", "remove_from_cart"]:
         properties["item_id"] = f"PROD_{random.randint(1000, 9999)}"
         properties["quantity"] = str(random.randint(1, 3))
@@ -126,12 +122,8 @@ def generate_event(user: dict, event_time: datetime) -> dict:
         properties["order_id"] = f"ORD_{random.randint(100000, 999999)}"
         properties["items_count"] = str(random.randint(1, 5))
     elif event_name == "error":
-        properties["error_code"] = random.choice(
-            ["E001", "E002", "E003", "E404", "E500"]
-        )
-        properties["error_message"] = random.choice(
-            ["Network error", "Timeout", "Invalid input", "Server error"]
-        )
+        properties["error_code"] = random.choice(ERROR_CODES)
+        properties["error_message"] = fake.sentence(nb_words=3)
 
     return {
         "insert_id": str(uuid.uuid4()),
@@ -144,7 +136,7 @@ def generate_event(user: dict, event_time: datetime) -> dict:
         "os_version": os_version,
         "device_model": user["device_model"],
         "app_version": user["app_version"],
-        "ip_address": generate_ip_address(),
+        "ip_address": fake.ipv4(),
         "country_code": user["country_code"],
         "city": user["city"],
         "screen_name": properties.get("screen_name") or random.choice(SCREEN_NAMES),
@@ -154,7 +146,7 @@ def generate_event(user: dict, event_time: datetime) -> dict:
     }
 
 
-def fetch_users(database: str):
+def fetch_users(database: str) -> list[dict[str, Any]]:
     """Fetch all users from the database."""
     connection = None
     cursor = None
@@ -170,7 +162,7 @@ def fetch_users(database: str):
             FROM users
         """
         )
-        return cursor.fetchall()
+        return cast(list[dict[str, Any]], cursor.fetchall())
 
     except mysql.connector.Error as e:
         print(f"Error fetching users: {e}")
@@ -235,7 +227,7 @@ def insert_events(database: str, events_per_day: int = 1000000) -> None:
                         hours=random.randint(0, 23),
                         minutes=random.randint(0, 59),
                         seconds=random.randint(0, 59),
-                        milliseconds=random.randint(0, 999),
+                        microseconds=random.randint(0, 999) * 1000,
                     )
 
                     events.append(generate_event(user, event_time))
