@@ -14,6 +14,7 @@ Usage:
     python main.py --help             # Show help
 """
 
+from pyiceberg.catalog import Catalog
 from typing import Optional
 
 import typer
@@ -139,7 +140,7 @@ def backfill(
     try:
         # Connect to catalog
         typer.echo("\nConnecting to Polaris catalog...")
-        catalog = get_iceberg_catalog()
+        catalog: Catalog = get_iceberg_catalog()
         # Ensure namespace exists
         typer.echo(f"Ensuring namespace '{namespace}' exists...")
         ensure_namespace(catalog, namespace)

@@ -100,13 +100,12 @@ def fetch_users() -> pl.DataFrame:
             created_at, updated_at, last_seen_at
         FROM users
     """
-    pl.read_csv()
     df = pl.read_database_uri(query, MYSQL_URI)
     print(f"  Fetched {len(df):,} users from MySQL")
     return df
 
 
-def backfill_users(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
+def backfill_users(catalog: Catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     """Export users from MySQL to Iceberg table."""
     print("\n" + "=" * 60)
     print("Backfill: users")
@@ -158,7 +157,7 @@ def fetch_events() -> pl.DataFrame:
     return df
 
 
-def backfill_events(catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
+def backfill_events(catalog: Catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
     """Export events from MySQL to Iceberg table."""
     print("\n" + "=" * 60)
     print("Backfill: events")

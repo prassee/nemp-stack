@@ -119,12 +119,12 @@ def generate_event(user: dict, event_time: datetime) -> dict:
         )
     elif event_name in ["add_to_cart", "remove_from_cart"]:
         properties["item_id"] = f"PROD_{random.randint(1000, 9999)}"
-        properties["quantity"] = random.randint(1, 3)
+        properties["quantity"] = str(random.randint(1, 3))
     elif event_name == "purchase":
         revenue = round(random.uniform(100, 10000), 2)
         currency_code = "INR"
         properties["order_id"] = f"ORD_{random.randint(100000, 999999)}"
-        properties["items_count"] = random.randint(1, 5)
+        properties["items_count"] = str(random.randint(1, 5))
     elif event_name == "error":
         properties["error_code"] = random.choice(
             ["E001", "E002", "E003", "E404", "E500"]
@@ -154,7 +154,7 @@ def generate_event(user: dict, event_time: datetime) -> dict:
     }
 
 
-def fetch_users(database: str) -> list[dict]:
+def fetch_users(database: str):
     """Fetch all users from the database."""
     connection = None
     cursor = None
@@ -163,15 +163,14 @@ def fetch_users(database: str) -> list[dict]:
         connection = get_connection(database)
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT user_id, os_name, device_model, app_version, 
                    country_code, city
             FROM users
-        """)
-
-        users = cursor.fetchall()
-        print(f"Fetched {len(users)} users from database")
-        return users
+        """
+        )
+        return cursor.fetchall()
 
     except mysql.connector.Error as e:
         print(f"Error fetching users: {e}")

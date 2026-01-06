@@ -7,3 +7,9 @@ requires-python = ">=3.13"
 dependencies = [
     "sqlmesh[lsp]>=0.228.1",
 ]
+
+[tool.pyrefly]
+project-includes = [
+    "**/*.py*",
+    "**/*.ipynb",
+]
