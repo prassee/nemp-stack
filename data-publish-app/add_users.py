@@ -1,226 +1,17 @@
 import random
 import uuid
 from datetime import datetime, timedelta
+from typing import Any, cast
 
 import mysql.connector
+from faker import Faker
 
 from ddl import get_connection
 
-# Indian male first names
-MALE_FIRST_NAMES = [
-    "Aarav",
-    "Vivaan",
-    "Aditya",
-    "Vihaan",
-    "Arjun",
-    "Sai",
-    "Reyansh",
-    "Ayaan",
-    "Krishna",
-    "Ishaan",
-    "Shaurya",
-    "Atharva",
-    "Advik",
-    "Pranav",
-    "Advaith",
-    "Aarush",
-    "Kabir",
-    "Ritvik",
-    "Anirudh",
-    "Dhruv",
-    "Harsh",
-    "Karthik",
-    "Nikhil",
-    "Rohan",
-    "Sahil",
-    "Tanish",
-    "Yash",
-    "Arnav",
-    "Darsh",
-    "Dev",
-    "Gaurav",
-    "Hemant",
-    "Jayesh",
-    "Kunal",
-    "Lakshya",
-    "Manish",
-    "Naveen",
-    "Om",
-    "Parth",
-    "Rajat",
-    "Siddharth",
-    "Tushar",
-    "Uday",
-    "Varun",
-    "Vikram",
-    "Ankit",
-    "Bharat",
-    "Chirag",
-    "Deepak",
-    "Eshan",
-]
-
-# Indian female first names
-FEMALE_FIRST_NAMES = [
-    "Aadhya",
-    "Diya",
-    "Pihu",
-    "Prisha",
-    "Ananya",
-    "Fatima",
-    "Ira",
-    "Aanya",
-    "Myra",
-    "Sara",
-    "Aarohi",
-    "Anika",
-    "Kavya",
-    "Riya",
-    "Kiara",
-    "Siya",
-    "Avni",
-    "Ishita",
-    "Saanvi",
-    "Pari",
-    "Meera",
-    "Nisha",
-    "Pooja",
-    "Shreya",
-    "Tanvi",
-    "Aditi",
-    "Bhavna",
-    "Charvi",
-    "Divya",
-    "Ekta",
-    "Gauri",
-    "Harini",
-    "Isha",
-    "Jyoti",
-    "Komal",
-    "Lavanya",
-    "Mahi",
-    "Neha",
-    "Ojasvi",
-    "Pallavi",
-    "Radha",
-    "Sakshi",
-    "Tara",
-    "Uma",
-    "Vaishnavi",
-    "Yamini",
-    "Zara",
-    "Aishwarya",
-    "Bhakti",
-    "Chhaya",
-]
-
-# Indian last names
-LAST_NAMES = [
-    "Sharma",
-    "Verma",
-    "Gupta",
-    "Singh",
-    "Kumar",
-    "Patel",
-    "Shah",
-    "Mehta",
-    "Joshi",
-    "Rao",
-    "Reddy",
-    "Nair",
-    "Menon",
-    "Pillai",
-    "Iyer",
-    "Iyengar",
-    "Mukherjee",
-    "Banerjee",
-    "Chatterjee",
-    "Das",
-    "Ghosh",
-    "Bose",
-    "Sen",
-    "Agarwal",
-    "Jain",
-    "Kapoor",
-    "Malhotra",
-    "Chopra",
-    "Khanna",
-    "Bhatia",
-    "Sethi",
-    "Arora",
-    "Garg",
-    "Mittal",
-    "Saxena",
-    "Mishra",
-    "Pandey",
-    "Tiwari",
-    "Dubey",
-    "Shukla",
-    "Srivastava",
-    "Tripathi",
-    "Chauhan",
-    "Rathore",
-    "Yadav",
-    "Thakur",
-    "Desai",
-    "Patil",
-    "Kulkarni",
-    "Deshpande",
-]
-
-# Indian cities with regions
-INDIAN_CITIES = [
-    ("Mumbai", "Maharashtra"),
-    ("Delhi", "Delhi"),
-    ("Bangalore", "Karnataka"),
-    ("Hyderabad", "Telangana"),
-    ("Chennai", "Tamil Nadu"),
-    ("Kolkata", "West Bengal"),
-    ("Pune", "Maharashtra"),
-    ("Ahmedabad", "Gujarat"),
-    ("Jaipur", "Rajasthan"),
-    ("Lucknow", "Uttar Pradesh"),
-    ("Kanpur", "Uttar Pradesh"),
-    ("Nagpur", "Maharashtra"),
-    ("Indore", "Madhya Pradesh"),
-    ("Thane", "Maharashtra"),
-    ("Bhopal", "Madhya Pradesh"),
-    ("Visakhapatnam", "Andhra Pradesh"),
-    ("Patna", "Bihar"),
-    ("Vadodara", "Gujarat"),
-    ("Ghaziabad", "Uttar Pradesh"),
-    ("Ludhiana", "Punjab"),
-    ("Agra", "Uttar Pradesh"),
-    ("Nashik", "Maharashtra"),
-    ("Faridabad", "Haryana"),
-    ("Meerut", "Uttar Pradesh"),
-    ("Rajkot", "Gujarat"),
-    ("Varanasi", "Uttar Pradesh"),
-    ("Srinagar", "Jammu and Kashmir"),
-    ("Aurangabad", "Maharashtra"),
-    ("Dhanbad", "Jharkhand"),
-    ("Amritsar", "Punjab"),
-    ("Allahabad", "Uttar Pradesh"),
-    ("Ranchi", "Jharkhand"),
-    ("Coimbatore", "Tamil Nadu"),
-    ("Jabalpur", "Madhya Pradesh"),
-    ("Gwalior", "Madhya Pradesh"),
-    ("Vijayawada", "Andhra Pradesh"),
-    ("Jodhpur", "Rajasthan"),
-    ("Madurai", "Tamil Nadu"),
-    ("Raipur", "Chhattisgarh"),
-    ("Kota", "Rajasthan"),
-    ("Chandigarh", "Chandigarh"),
-    ("Guwahati", "Assam"),
-    ("Solapur", "Maharashtra"),
-    ("Hubli", "Karnataka"),
-    ("Tiruchirappalli", "Tamil Nadu"),
-    ("Bareilly", "Uttar Pradesh"),
-    ("Mysore", "Karnataka"),
-    ("Tiruppur", "Tamil Nadu"),
-    ("Gurgaon", "Haryana"),
-    ("Noida", "Uttar Pradesh"),
-]
+# Initialize Faker with Indian locale
+fake = Faker("en_IN")
+Faker.seed(42)
+random.seed(42)
 
 # Android device models (50)
 ANDROID_DEVICES = [
@@ -301,15 +92,16 @@ APP_VERSIONS = ["1.0.0", "1.0.1", "1.1.0", "1.2.0", "1.2.1", "2.0.0", "2.0.1", "
 def generate_user(created_at: datetime) -> dict:
     """Generate a single user record."""
     is_male = random.random() < 0.5
-    first_name = random.choice(MALE_FIRST_NAMES if is_male else FEMALE_FIRST_NAMES)
-    last_name = random.choice(LAST_NAMES)
+    first_name = fake.first_name_male() if is_male else fake.first_name_female()
+    last_name = fake.last_name()
     full_name = f"{first_name} {last_name}"
 
     user_id = str(uuid.uuid4())
-    email = f"{first_name.lower()}.{last_name.lower()}{random.randint(1, 999)}@{'gmail.com' if random.random() < 0.7 else 'yahoo.com'}"
-    phone = f"+91{random.randint(7000000000, 9999999999)}"
+    email = fake.email()
+    phone = fake.phone_number()
 
-    city, region = random.choice(INDIAN_CITIES)
+    city = fake.city()
+    region = fake.state()
 
     is_ios = random.random() < 0.3  # 30% iOS, 70% Android
     os_name = "iOS" if is_ios else "Android"
@@ -408,7 +200,8 @@ def update_random_users(database: str, percentage: float = 0.15) -> None:
 
         # Get total user count
         cursor.execute("SELECT COUNT(*) FROM users")
-        total_users = cursor.fetchone()[0]
+        result = cursor.fetchone()
+        total_users = cast(tuple[int], result)[0] if result else 0
         users_to_update = int(total_users * percentage)
 
         print(
@@ -419,7 +212,7 @@ def update_random_users(database: str, percentage: float = 0.15) -> None:
         cursor.execute(
             "SELECT id FROM users ORDER BY RAND() LIMIT %s", (users_to_update,)
         )
-        user_ids = [row[0] for row in cursor.fetchall()]
+        user_ids = [cast(tuple[int], row)[0] for row in cursor.fetchall()]
 
         update_sql = """
             UPDATE users SET
@@ -437,10 +230,11 @@ def update_random_users(database: str, percentage: float = 0.15) -> None:
 
         for i in range(0, len(user_ids), batch_size):
             batch_ids = user_ids[i : i + batch_size]
-            updates = []
+            updates: list[dict[str, Any]] = []
 
             for user_id in batch_ids:
-                city, region = random.choice(INDIAN_CITIES)
+                city = fake.city()
+                region = fake.state()
                 is_ios = random.random() < 0.3
                 os_name = "iOS" if is_ios else "Android"
                 device_model = random.choice(IOS_DEVICES if is_ios else ANDROID_DEVICES)

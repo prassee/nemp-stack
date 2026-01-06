@@ -8,6 +8,7 @@ dependencies = [
     "mysql-connector-python>=9.0.0",
     "pyiceberg[s3fs,pyarrow]>=0.7.0",
     "pyarrow>=17.0.0",
+    "faker>=40.1.0",
 ]
 
 [tool.pyrefly]
