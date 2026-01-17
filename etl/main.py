@@ -14,6 +14,7 @@ Usage:
     python main.py --help             # Show help
 """
 
+import typer
 from pyiceberg.catalog import Catalog
 from typing import Optional
 

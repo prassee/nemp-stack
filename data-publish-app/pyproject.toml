@@ -9,6 +9,7 @@ dependencies = [
     "pyiceberg[s3fs,pyarrow]>=0.7.0",
     "pyarrow>=17.0.0",
     "faker>=40.1.0",
+    "polars>=1.37.1",
 ]
 
 [tool.pyrefly]
