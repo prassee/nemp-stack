@@ -1,7 +1,9 @@
 from typing import Any, Tuple
+import socket
 import polars as pl
 import s3fs
-from pyiceberg.catalog import Catalog, load_catalog
+from pyiceberg.catalog import Catalog
+from pyiceberg.catalog.rest import RestCatalog
 from pyiceberg.table import Table
 
 # S3/MinIO configuration
@@ -9,23 +11,41 @@ MINIO_ENDPOINT = "http://localhost:9000"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
 
-# Iceberg REST catalog configuration
-ICEBERG_REST_URI = "http://localhost:8181"
-ICEBERG_WAREHOUSE = "s3://warehouse/"
+# LakeKeeper Iceberg REST catalog configuration
+# Note: LakeKeeper uses /catalog path and warehouse name (not s3:// path)
+LAKEKEEPER_URI = "http://localhost:8181/catalog"
+LAKEKEEPER_WAREHOUSE = "warehouse"  # Warehouse name created in LakeKeeper
+
+# DNS override: Map 'minio' hostname to localhost
+# This is needed because LakeKeeper returns Docker-internal 'minio:9000' endpoint
+# but PyIceberg runs on the host where 'minio' doesn't resolve.
+_original_getaddrinfo = socket.getaddrinfo
+
+
+def _patched_getaddrinfo(host, port, *args, **kwargs):
+    if host == "minio":
+        host = "127.0.0.1"
+    return _original_getaddrinfo(host, port, *args, **kwargs)
+
+
+socket.getaddrinfo = _patched_getaddrinfo
 
 
 def get_iceberg_catalog() -> Catalog:
-    """Create PyIceberg catalog connected to iceberg-rest service."""
-    return load_catalog(
-        "iceberg_rest",
+    """Create PyIceberg catalog connected to LakeKeeper service.
+
+    Note: We explicitly provide S3 configuration here to override the endpoint
+    returned by LakeKeeper (which uses Docker-internal 'minio:9000' hostname).
+    This allows PyIceberg running on the host to connect to MinIO via localhost.
+    """
+    return RestCatalog(
+        name="lakekeeper",
+        uri=LAKEKEEPER_URI,
+        warehouse=LAKEKEEPER_WAREHOUSE,
         **{
-            "type": "rest",
-            "uri": ICEBERG_REST_URI,
-            "warehouse": ICEBERG_WAREHOUSE,
             "s3.endpoint": MINIO_ENDPOINT,
             "s3.access-key-id": MINIO_ACCESS_KEY,
             "s3.secret-access-key": MINIO_SECRET_KEY,
-            "s3.path-style-access": "true",
             "s3.region": "us-east-1",
         },
     )
@@ -57,7 +77,7 @@ def list_iceberg_catalogs() -> list[dict[str, Any]]:
         return [
             {
                 "name": catalog.name,
-                "uri": ICEBERG_REST_URI,
+                "uri": LAKEKEEPER_URI,
                 "namespaces": [".".join(ns) for ns in namespaces],
                 "tables": tables_by_namespace,
             }
@@ -118,80 +138,31 @@ def drop_iceberg_table(
     """
     Drop an Iceberg table from the catalog.
 
+    With LakeKeeper, file cleanup is handled automatically by the catalog:
+    - Metadata files are cleaned up based on `write.metadata.delete-after-commit.enabled`
+    - Snapshots are expired based on warehouse/table configuration
+    - Data files are deleted when snapshots expire
+
     Args:
         catalog: PyIceberg catalog instance
         namespace: Iceberg namespace (e.g., 'analytics')
         table_name: Name of the table to drop
-        purge: If True, also delete the underlying data files in S3/MinIO.
+        purge: If True, request catalog to purge data files (LakeKeeper handles this).
                If False, only remove table from catalog metadata.
     """
     table_id: str = f"{namespace}.{table_name}"
 
-    if purge:
-        try:
-            # Load table first to get its location before dropping
-            table: Table = catalog.load_table(table_id)
-            table_location: str = table.metadata.location
-            print(f"Table location: {table_location}")
-
-            # Collect all files to delete
-            files_to_delete: set[str] = set()
-
-            # Add metadata location
-            files_to_delete.add(table.metadata_location)
-
-            # Add previous metadata files
-            for log in table.metadata.metadata_log:
-                files_to_delete.add(log.metadata_file)
-
-            # Get all snapshots and their associated files
-            io = table.io
-            for snapshot in table.metadata.snapshots:
-                # Add manifest list
-                files_to_delete.add(snapshot.manifest_list)
-
-                # Get manifests and data files
-                for manifest in snapshot.manifests(io):
-                    files_to_delete.add(manifest.manifest_path)
-                    for entry in manifest.fetch_manifest_entry(
-                        io, discard_deleted=False
-                    ):
-                        files_to_delete.add(entry.data_file.file_path)
-
-            # Drop table from catalog first
-            catalog.drop_table(table_id)
-            print(f"Dropped table from catalog: {table_id}")
-
-            # Now delete all files from S3/MinIO
-            fs = get_s3_filesystem()
-            deleted_count = 0
-            for file_path in files_to_delete:
-                try:
-                    # Convert s3:// path to path without scheme for s3fs
-                    clean_path = file_path.replace("s3://", "")
-                    fs.rm(clean_path)
-                    deleted_count += 1
-                except Exception as e:
-                    print(f"  Warning: Failed to delete {file_path}: {e}")
-
-            print(f"Deleted {deleted_count} files from S3/MinIO")
-
-            # Also try to remove the table directory if empty
-            try:
-                table_dir = table_location.replace("s3://", "")
-                fs.rm(table_dir, recursive=True)
-                print(f"Removed table directory: {table_location}")
-            except Exception:
-                pass  # Directory might not be empty or already deleted
-
-        except Exception as e:
-            print(f"Error purging table {table_id}: {e}")
-    else:
-        try:
+    try:
+        if purge:
+            # LakeKeeper handles file deletion automatically when purge=True
+            # This uses catalog.purge_table() which tells LakeKeeper to delete files
+            catalog.purge_table(table_id)
+            print(f"Purged table (data deleted by LakeKeeper): {table_id}")
+        else:
             catalog.drop_table(table_id)
             print(f"Dropped table (data retained): {table_id}")
-        except Exception as e:
-            print(f"Error dropping table {table_id}: {e}")
+    except Exception as e:
+        print(f"Error dropping table {table_id}: {e}")
 
 
 def register_iceberg_table(
@@ -222,23 +193,22 @@ def register_iceberg_table(
 
     try:
         # Try to load existing table
-        iceberg_table: Table = catalog.load_table(table_id)
+        iceberg_table = catalog.load_table(table_id)
         print(f"Loaded existing table: {table_id}")
     except Exception:
         # Create new managed table (catalog determines location)
-        # Only pass location if explicitly provided (for external tables)
+        create_kwargs: dict[str, Any] = {
+            "identifier": table_id,
+            "schema": arrow_table.schema,
+        }
         if location:
-            iceberg_table = catalog.create_table(
-                identifier=table_id,
-                schema=arrow_table.schema,
-                location=location,
-            )
+            create_kwargs["location"] = location
+
+        iceberg_table = catalog.create_table(**create_kwargs)
+
+        if location:
             print(f"Created new external table: {table_id} at {location}")
         else:
-            iceberg_table = catalog.create_table(
-                identifier=table_id,
-                schema=arrow_table.schema,
-            )
             print(f"Created new managed table: {table_id}")
 
     # Write data to table
@@ -285,37 +255,29 @@ def load_and_register_tables(namespace: str) -> Tuple[pl.DataFrame, pl.DataFrame
 
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("Iceberg Catalogs (Before)")
-    print("=" * 60)
-    catalogs = list_iceberg_catalogs()
-    for catalog in catalogs:
-        print(f"  Catalog: {catalog['name']}")
-        print(f"  URI: {catalog['uri']}")
-        print(f"  Namespaces: {catalog['namespaces']}")
-        print(f"  Tables:")
-        for ns, tables in catalog["tables"].items():
-            for table in tables:
-                print(f"    - {table}")
 
-    drop_iceberg_table(get_iceberg_catalog(), "unnest", "users")
-    drop_iceberg_table(get_iceberg_catalog(), "unnest", "events")
+    def list_tables():
+        print("=" * 60)
+        print("Iceberg Catalog Status")
+        print("=" * 60)
+        catalogs = list_iceberg_catalogs()
+        for catalog in catalogs:
+            print(f"  Catalog: {catalog['name']}")
+            print(f"  URI: {catalog['uri']}")
+            print(f"  Namespaces: {catalog['namespaces']}")
+            print(f"  Tables:")
+            for ns, tables in catalog["tables"].items():
+                for table in tables:
+                    print(f"    - {table}")
+        if not catalogs:
+            print("  No catalogs available or connection error")
 
-    print("=" * 60)
-    # print("Loading and Registering Tables")
-    print("=" * 60)
-    # users_df, events_df = load_and_register_tables("unnest")
-    print()
+    list_tables()
+    # Uncomment to load and register tables:
+    users_df, events_df = load_and_register_tables("unnest")
 
-    print("=" * 60)
-    print("Iceberg Catalogs (After)")
-    print("=" * 60)
-    catalogs = list_iceberg_catalogs()
-    for catalog in catalogs:
-        print(f"  Catalog: {catalog['name']}")
-        print(f"  URI: {catalog['uri']}")
-        print(f"  Namespaces: {catalog['namespaces']}")
-        print(f"  Tables:")
-        for ns, tables in catalog["tables"].items():
-            for table in tables:
-                print(f"    - {table}")
+    # Uncomment to drop tables:
+    # drop_iceberg_table(get_iceberg_catalog(), "unnest", "users")
+    # drop_iceberg_table(get_iceberg_catalog(), "unnest", "events")
+
+    list_tables()

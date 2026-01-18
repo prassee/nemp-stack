@@ -21,3 +21,17 @@ storage_region = 'us-east-1';
 
 select * from unnest_users as uu ;
 select * from unnest_events as uu ;
+
+
+
+ SET allow_experimental_database_iceberg = 1;
+
+        CREATE DATABASE iceberg_lake
+        ENGINE = DataLakeCatalog('http://lakekeeper:8181/catalog')
+        SETTINGS
+            catalog_type = 'rest',
+            warehouse = 'warehouse',
+            storage_endpoint = 'http://minio:9000',
+            aws_access_key_id = 'minioadmin',
+            aws_secret_access_key = 'minioadmin';
+
