@@ -1,0 +1,30 @@
+<clickhouse>
+    <!-- Named collections for Iceberg tables -->
+    <named_collections>
+        <!-- Named collection for direct S3/MinIO Iceberg access -->
+        <iceberg_minio>
+            <url>http://minio:9000/warehouse/</url>
+            <access_key_id>minioadmin</access_key_id>
+            <secret_access_key>minioadmin</secret_access_key>
+            <format>auto</format>
+            <structure>auto</structure>
+        </iceberg_minio>
+
+        <!-- Named collection for REST catalog access -->
+        <iceberg_rest_catalog>
+            <url>http://minio:9000/warehouse/</url>
+            <access_key_id>minioadmin</access_key_id>
+            <secret_access_key>minioadmin</secret_access_key>
+            <storage_catalog_type>rest</storage_catalog_type>
+            <storage_catalog_url>http://iceberg-rest:8181</storage_catalog_url>
+            <storage_warehouse>warehouse</storage_warehouse>
+            <object_storage_endpoint>http://minio:9000</object_storage_endpoint>
+            <storage_region>us-east-1</storage_region>
+        </iceberg_rest_catalog>
+    </named_collections>
+
+    <!-- S3 settings for MinIO compatibility -->
+    <s3>
+        <use_environment_credentials>true</use_environment_credentials>
+    </s3>
+</clickhouse>

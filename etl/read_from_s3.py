@@ -190,27 +190,8 @@ def load_and_register_tables(namespace: str) -> Tuple[pl.DataFrame, pl.DataFrame
 
 
 if __name__ == "__main__":
-    # print("=" * 60)
-    # print("Iceberg Catalogs (Before)")
-    # print("=" * 60)
-    # catalogs = list_iceberg_catalogs()
-    # for catalog in catalogs:
-    #     print(f"  Catalog: {catalog['name']}")
-    #     print(f"  URI: {catalog['uri']}")
-    #     print(f"  Namespaces: {catalog['namespaces']}")
-    #     print(f"  Tables:")
-    #     for ns, tables in catalog["tables"].items():
-    #         for table in tables:
-    #             print(f"    - {table}")
-
     print("=" * 60)
-    print("Loading and Registering Tables")
-    print("=" * 60)
-    users_df, events_df = load_and_register_tables("unnest")
-    print()
-
-    print("=" * 60)
-    print("Iceberg Catalogs (After)")
+    print("Iceberg Catalogs (Before)")
     print("=" * 60)
     catalogs = list_iceberg_catalogs()
     for catalog in catalogs:
@@ -221,3 +202,22 @@ if __name__ == "__main__":
         for ns, tables in catalog["tables"].items():
             for table in tables:
                 print(f"    - {table}")
+
+    # print("=" * 60)
+    # print("Loading and Registering Tables")
+    # print("=" * 60)
+    # users_df, events_df = load_and_register_tables("unnest")
+    # print()
+    #
+    # print("=" * 60)
+    # print("Iceberg Catalogs (After)")
+    # print("=" * 60)
+    # catalogs = list_iceberg_catalogs()
+    # for catalog in catalogs:
+    #     print(f"  Catalog: {catalog['name']}")
+    #     print(f"  URI: {catalog['uri']}")
+    #     print(f"  Namespaces: {catalog['namespaces']}")
+    #     print(f"  Tables:")
+    #     for ns, tables in catalog["tables"].items():
+    #         for table in tables:
+    #             print(f"    - {table}")
