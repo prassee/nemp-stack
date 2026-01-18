@@ -14,7 +14,11 @@ Usage:
     python main.py --help             # Show help
 """
 
+<<<<<<< HEAD
 import logging
+=======
+from pyiceberg.catalog import Catalog
+>>>>>>> b318c92 (updated)
 from typing import Optional
 
 import typer
@@ -156,8 +160,12 @@ def backfill(
         # Connect to catalog
         logger.info("Connecting to Polaris catalog...")
         typer.echo("\nConnecting to Polaris catalog...")
+<<<<<<< HEAD
         catalog = get_iceberg_catalog()
         
+=======
+        catalog: Catalog = get_iceberg_catalog()
+>>>>>>> b318c92 (updated)
         # Ensure namespace exists
         logger.info(f"Ensuring namespace '{namespace}' exists...")
         typer.echo(f"Ensuring namespace '{namespace}' exists...")

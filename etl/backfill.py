@@ -125,6 +125,7 @@ def fetch_users() -> pl.DataFrame:
             created_at, updated_at, last_seen_at
         FROM users
     """
+<<<<<<< HEAD
     try:
         logger.debug(f"Fetching users from MySQL: {MYSQL_URI}")
         df = pl.read_database_uri(query, MYSQL_URI)
@@ -133,6 +134,11 @@ def fetch_users() -> pl.DataFrame:
     except Exception as e:
         logger.error(f"Failed to fetch users from MySQL: {e}")
         raise
+=======
+    df = pl.read_database_uri(query, MYSQL_URI)
+    print(f"  Fetched {len(df):,} users from MySQL")
+    return df
+>>>>>>> b318c92 (updated)
 
 
 def backfill_users(catalog: Catalog, namespace: str = DEFAULT_NAMESPACE) -> int:
