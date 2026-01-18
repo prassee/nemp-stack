@@ -30,6 +30,7 @@ from backfill import (
     backfill_users,
     ensure_namespace,
     get_iceberg_catalog,
+    list_iceberg_catalogs,
 )
 from setup_polaris import (
     create_catalog,
@@ -207,6 +208,52 @@ def info():
     typer.echo(f"  Bucket:   {MINIO_BUCKET}")
     typer.echo(f"\nDefaults:")
     typer.echo(f"  Namespace: {DEFAULT_NAMESPACE}")
+
+
+@app.command()
+def catalogs():
+    """
+    List available catalogs from the Iceberg REST catalog service.
+
+    Queries the iceberg-rest service defined in docker-compose.yml
+    to retrieve catalog configuration and information.
+    """
+    typer.echo("Listing Iceberg Catalogs")
+    typer.echo("=" * 40)
+    typer.echo(f"\nCatalog URI: {POLARIS_URI}")
+    typer.echo("")
+
+    try:
+        catalog_list = list_iceberg_catalogs()
+
+        if not catalog_list:
+            typer.echo(typer.style("No catalogs found.", fg=typer.colors.YELLOW))
+            return
+
+        typer.echo(f"Found {len(catalog_list)} catalog(s):\n")
+
+        for catalog in catalog_list:
+            name = catalog.get("name", "unknown")
+            typer.echo(typer.style(f"  - {name}", fg=typer.colors.GREEN, bold=True))
+
+            properties = catalog.get("properties", {})
+            if properties:
+                # Show key properties
+                if "defaults" in properties:
+                    defaults = properties["defaults"]
+                    if "warehouse" in defaults:
+                        typer.echo(f"      warehouse: {defaults['warehouse']}")
+                if "uri" in properties:
+                    typer.echo(f"      uri: {properties['uri']}")
+
+        typer.echo("")
+
+    except Exception as e:
+        typer.echo(
+            typer.style(f"Error listing catalogs: {e}", fg=typer.colors.RED),
+            err=True,
+        )
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":

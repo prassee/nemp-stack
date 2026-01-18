@@ -1,8 +1,7 @@
 .PHONY: help up down \
 	start-minio stop-minio \
-	start-polaris-db stop-polaris-db \
-	start-polaris stop-polaris \
-	start-polaris-console stop-polaris-console \
+	start-iceberg-catalog-db stop-iceberg-catalog-db \
+	start-iceberg-rest stop-iceberg-rest \
 	start-clickhouse stop-clickhouse \
 	start-mysql stop-mysql \
 	status logs
@@ -23,14 +22,11 @@ help:
 	@echo "  start-minio         Start MinIO (object storage)"
 	@echo "  stop-minio          Stop MinIO"
 	@echo ""
-	@echo "  start-polaris-db    Start Polaris PostgreSQL database"
-	@echo "  stop-polaris-db     Stop Polaris PostgreSQL database"
+	@echo "  start-iceberg-catalog-db  Start Iceberg catalog PostgreSQL database"
+	@echo "  stop-iceberg-catalog-db   Stop Iceberg catalog PostgreSQL database"
 	@echo ""
-	@echo "  start-polaris       Start Polaris (Iceberg catalog)"
-	@echo "  stop-polaris        Stop Polaris"
-	@echo ""
-	@echo "  start-polaris-console  Start Polaris Console (web UI)"
-	@echo "  stop-polaris-console   Stop Polaris Console"
+	@echo "  start-iceberg-rest  Start Iceberg REST catalog"
+	@echo "  stop-iceberg-rest   Stop Iceberg REST catalog"
 	@echo ""
 	@echo "  start-clickhouse    Start ClickHouse"
 	@echo "  stop-clickhouse     Stop ClickHouse"
@@ -59,27 +55,19 @@ stop-minio:
 	docker compose stop minio minio-init
 	docker compose rm -f minio-init
 
-# Polaris DB
-start-polaris-db:
-	docker compose up -d polaris-db
+# Iceberg Catalog DB
+start-iceberg-catalog-db:
+	docker compose up -d iceberg-catalog-db
 
-stop-polaris-db:
-	docker compose stop polaris-db
+stop-iceberg-catalog-db:
+	docker compose stop iceberg-catalog-db
 
-# Polaris (includes dependencies)
-start-polaris:
-	docker compose up -d polaris polaris-init
+# Iceberg REST Catalog
+start-iceberg-rest:
+	docker compose up -d iceberg-rest
 
-stop-polaris:
-	docker compose stop polaris polaris-init
-	docker compose rm -f polaris-init
-
-# Polaris Console
-start-polaris-console:
-	docker compose up -d polaris-console
-
-stop-polaris-console:
-	docker compose stop polaris-console
+stop-iceberg-rest:
+	docker compose stop iceberg-rest
 
 # ClickHouse
 start-clickhouse:

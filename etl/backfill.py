@@ -58,6 +58,60 @@ def get_iceberg_catalog() -> Catalog:
     )
 
 
+def list_iceberg_catalogs() -> list[dict]:
+    """
+    List available catalogs from the Iceberg REST catalog service.
+
+    Uses the Iceberg REST API config endpoint to retrieve catalog information.
+    The iceberg-rest service (tabulario/iceberg-rest) exposes catalog config
+    at the /v1/config endpoint.
+
+    Returns:
+        List of catalog information dictionaries with 'name' and 'properties' keys.
+    """
+    import requests
+
+    # The iceberg-rest service base URL (without /api/catalog suffix)
+    base_url = POLARIS_URI.replace("/api/catalog", "")
+    if base_url.endswith("/"):
+        base_url = base_url[:-1]
+
+    # Try the REST catalog config endpoint
+    config_url = f"{base_url}/v1/config"
+
+    try:
+        response = requests.get(config_url, timeout=10)
+        response.raise_for_status()
+        config = response.json()
+
+        catalogs = []
+        # The config endpoint returns catalog defaults and overrides
+        if "defaults" in config or "overrides" in config:
+            # Extract warehouse info which represents the catalog
+            catalog_info = {
+                "name": config.get("defaults", {}).get("warehouse", "default"),
+                "properties": config,
+            }
+            catalogs.append(catalog_info)
+
+        return catalogs
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error connecting to Iceberg REST catalog at {config_url}: {e}")
+        # Fallback: try to get catalog info from the loaded catalog
+        try:
+            catalog = get_iceberg_catalog()
+            return [
+                {
+                    "name": catalog.name,
+                    "properties": {"uri": POLARIS_URI, "warehouse": "warehouse"},
+                }
+            ]
+        except Exception as fallback_error:
+            print(f"Fallback also failed: {fallback_error}")
+            return []
+
+
 def ensure_namespace(catalog, namespace: str) -> None:
     """Create namespace if it doesn't exist."""
     namespaces = [ns[0] for ns in catalog.list_namespaces()]

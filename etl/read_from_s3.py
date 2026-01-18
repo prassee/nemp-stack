@@ -1,56 +1,76 @@
-from pyiceberg.catalog import Catalog
 import polars as pl
-from pyiceberg.catalog import load_catalog
+import requests
 
+# S3/MinIO configuration
+MINIO_ENDPOINT = "http://localhost:9000"
+MINIO_ACCESS_KEY = "minioadmin"
+MINIO_SECRET_KEY = "minioadmin"
+
+# Iceberg REST catalog configuration
+ICEBERG_REST_URI = "http://localhost:8181"
+
+
+def list_iceberg_catalogs() -> list[dict]:
+    """
+    List available catalogs from the Iceberg REST catalog service.
+
+    Uses the Iceberg REST API config endpoint to retrieve catalog information.
+    The iceberg-rest service (tabulario/iceberg-rest) exposes catalog config
+    at the /v1/config endpoint.
+
+    Returns:
+        List of catalog information dictionaries with 'name' and 'properties' keys.
+    """
+    config_url = f"{ICEBERG_REST_URI}/v1/config"
+
+    try:
+        response = requests.get(config_url, timeout=10)
+        response.raise_for_status()
+        config = response.json()
+
+        catalogs = []
+        # The config endpoint returns catalog defaults and overrides
+        if "defaults" in config or "overrides" in config:
+            # Extract warehouse info which represents the catalog
+            catalog_info = {
+                "name": config.get("defaults", {}).get("warehouse", "default"),
+                "properties": config,
+            }
+            catalogs.append(catalog_info)
+
+        return catalogs
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error connecting to Iceberg REST catalog at {config_url}: {e}")
+        return []
+
+
+s3_file = "s3://stage/backfill/users/users_2025_01.parquet"
+s3_file = "s3://stage/backfill/events/events_2025_01_01.parquet"
 # Read parquet from S3
-df = pl.read_parquet(
-    "s3://stage/backfill/users/users_2025_01.parquet",
+df: pl.DataFrame = pl.read_parquet(
+    s3_file,
     storage_options={
-        "endpoint_url": "http://localhost:9000",
-        "aws_access_key_id": "minioadmin",
-        "aws_secret_access_key": "minioadmin",
+        "endpoint_url": MINIO_ENDPOINT,
+        "aws_access_key_id": MINIO_ACCESS_KEY,
+        "aws_secret_access_key": MINIO_SECRET_KEY,
     },
 )
 
-# Connect to Polaris REST catalog
-catalog: Catalog = load_catalog(
-    "polaris",
-    type="rest",
-    uri="http://localhost:8181/iceberg",
-    warehouse="default",
-    credential="root:s3cr3t",
-    **{
-        "s3.endpoint": "http://localhost:9000",
-        "s3.access-key-id": "minioadmin",
-        "s3.secret-access-key": "minioadmin",
-        "s3.path-style-access": "true",
-        "s3.region": "us-east-1",
-    },
-)
 
-# Create namespace if it doesn't exist
-# namespace = "default"
-# if namespace not in [ns[0] for ns in catalog.list_namespaces()]:
-#     catalog.create_namespace(namespace)
-#
-# # Convert Polars to PyArrow and create Iceberg table
-# arrow_table = df.to_arrow()
-# table_name = f"{namespace}.users"
-#
-# # Create or replace the table
-# if table_name in [f"{t[0]}.{t[1]}" for t in catalog.list_tables(namespace)]:
-#     table = catalog.load_table(table_name)
-#     table.overwrite(arrow_table)
-# else:
-#     table = catalog.create_table(table_name, schema=arrow_table.schema)
-#     table.append(arrow_table)
-#
-# print(f"Registered Iceberg table: {table_name}")
-# print(f"Table location: {table.location()}")
-#
 if __name__ == "__main__":
-    # print(df)
-    catalog_tables = catalog.list_tables("default")
-    print(
-        f"Tables in 'default' namespace: {[f'{t[0]}.{t[1]}' for t in catalog_tables]}"
-    )
+    print("Iceberg Catalogs:")
+    print("=" * 40)
+    catalogs = list_iceberg_catalogs()
+    for catalog in catalogs:
+        print(f"  - {catalog['name']}")
+        if "properties" in catalog:
+            props = catalog["properties"]
+            if "defaults" in props:
+                print(f"    defaults: {props['defaults']}")
+    print()
+
+    print("DataFrame Info:")
+    print("=" * 40)
+    print(df.describe())
+    print(df.head(10))

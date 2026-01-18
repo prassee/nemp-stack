@@ -36,95 +36,45 @@ services:
       "
     restart: on-failure
 
-  polaris-db:
+  iceberg-catalog-db:
     image: postgres:15-alpine
-    container_name: polaris-db
+    container_name: iceberg-catalog-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: POLARIS
+      POSTGRES_USER: iceberg
+      POSTGRES_PASSWORD: iceberg
+      POSTGRES_DB: iceberg_catalog
     volumes:
-      - ./data/polaris-db:/var/lib/postgresql/data
+      - ./data/iceberg-catalog-db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d POLARIS"]
+      test: ["CMD-SHELL", "pg_isready -U iceberg -d iceberg_catalog"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
 
-  polaris:
-    image: apache/polaris:1.2.0-incubating
-    container_name: polaris
+  iceberg-rest:
+    image: tabulario/iceberg-rest:latest
+    container_name: iceberg-rest
     ports:
       - "8181:8181"
-      - "8182:8182"
     environment:
-      # PostgreSQL database configuration per official docs
-      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://polaris-db:5432/POLARIS
-      QUARKUS_DATASOURCE_USERNAME: postgres
-      QUARKUS_DATASOURCE_PASSWORD: postgres
-      # Default root credentials
-      CLIENT_ID: root
-      CLIENT_SECRET: s3cr3t
-      # S3/MinIO configuration for warehouse
-      AWS_S3_ENDPOINT: http://minio:9000
-      AWS_REGION: us-east-1
-      AWS_S3_REGION: us-east-1
+      # JDBC Catalog Configuration
+      CATALOG_CATALOG__IMPL: org.apache.iceberg.jdbc.JdbcCatalog
+      CATALOG_URI: jdbc:postgresql://iceberg-catalog-db:5432/iceberg_catalog
+      CATALOG_JDBC_USER: iceberg
+      CATALOG_JDBC_PASSWORD: iceberg
+      CATALOG_WAREHOUSE: s3://warehouse/
+      # S3/MinIO Configuration
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
-      AWS_S3_PATH_STYLE_ACCESS: "true"
-      # Java system property for AWS region
-      JAVA_OPTS: "-Daws.region=us-east-1"
+      AWS_REGION: us-east-1
     depends_on:
       minio:
         condition: service_healthy
-      polaris-db:
-        condition: service_healthy
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "curl",
-          "-s",
-          "-o",
-          "/dev/null",
-          "-w",
-          "%{http_code}",
-          "http://localhost:8181/iceberg/v1/config/warehouse/default",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    restart: unless-stopped
-
-  polaris-init:
-    image: alpine:latest
-    container_name: polaris-init
-    depends_on:
-      polaris:
-        condition: service_healthy
-    command: >
-      sh -c "
-      apk add --no-cache curl &&
-      curl -X POST
-      -H 'Content-Type: application/json'
-      -d '{\"catalog\": {\"name\": \"default\", \"properties\": {\"warehouse-location\": \"s3://warehouse\", \"s3.endpoint\": \"http://minio:9000\", \"s3.region\": \"us-east-1\"}}}'
-      http://polaris:8181/api/management/v1/catalogs &&
-      echo 'Polaris default catalog created'
-      "
-    restart: on-failure
-
-  polaris-console:
-    image: localhost/apache/polaris-console:latest
-    container_name: polaris-console
-    ports:
-      - "8080:80"
-    environment:
-      VITE_POLARIS_API_URL: http://polaris:8181
-      VITE_POLARIS_REALM: POLARIS
-    depends_on:
-      polaris:
+      iceberg-catalog-db:
         condition: service_healthy
     restart: unless-stopped
 

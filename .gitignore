@@ -3,4 +3,4 @@ data/
 data-model-app/logs
 data-model-app/logs
 data-model-app/logs
-data-publish-app/__pycache__
+**/__pycache__
