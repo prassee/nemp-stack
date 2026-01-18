@@ -2,6 +2,7 @@
 	start-minio stop-minio \
 	start-polaris-db stop-polaris-db \
 	start-polaris stop-polaris \
+	start-polaris-console stop-polaris-console \
 	start-clickhouse stop-clickhouse \
 	start-mysql stop-mysql \
 	status logs
@@ -27,6 +28,9 @@ help:
 	@echo ""
 	@echo "  start-polaris       Start Polaris (Iceberg catalog)"
 	@echo "  stop-polaris        Stop Polaris"
+	@echo ""
+	@echo "  start-polaris-console  Start Polaris Console (web UI)"
+	@echo "  stop-polaris-console   Stop Polaris Console"
 	@echo ""
 	@echo "  start-clickhouse    Start ClickHouse"
 	@echo "  stop-clickhouse     Stop ClickHouse"
@@ -69,6 +73,13 @@ start-polaris:
 stop-polaris:
 	docker compose stop polaris polaris-init
 	docker compose rm -f polaris-init
+
+# Polaris Console
+start-polaris-console:
+	docker compose up -d polaris-console
+
+stop-polaris-console:
+	docker compose stop polaris-console
 
 # ClickHouse
 start-clickhouse:

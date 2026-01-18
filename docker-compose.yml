@@ -115,6 +115,19 @@ services:
       "
     restart: on-failure
 
+  polaris-console:
+    image: localhost/apache/polaris-console:latest
+    container_name: polaris-console
+    ports:
+      - "8080:80"
+    environment:
+      VITE_POLARIS_API_URL: http://polaris:8181
+      VITE_POLARIS_REALM: POLARIS
+    depends_on:
+      polaris:
+        condition: service_healthy
+    restart: unless-stopped
+
   clickhouse:
     image: clickhouse/clickhouse-server:latest
     container_name: clickhouse

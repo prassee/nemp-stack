@@ -41,10 +41,10 @@ def read_parquet(file_path: str) -> None:
 
 
 if __name__ == "__main__":
-    # export_csv_to_parquet(
-    #     csv_file_path="/data/datasets/users_2025_03.csv",
-    #     parquet_file_path="/data/datasets/users_2025_03.parquet",
-    # )
-    read_parquet("/data/datasets/users_2025_01.parquet")
-    read_parquet("/data/datasets/users_2025_02.parquet")
-    read_parquet("/data/datasets/users_2025_03.parquet")
+    export_csv_to_parquet(
+        csv_file_path="/data/datasets/events_2025_01_01.csv",
+        parquet_file_path="/data/datasets/events_2025_01_01.parquet",
+    )
+    # read_parquet("/data/datasets/users_2025_01.parquet")
+    # read_parquet("/data/datasets/users_2025_02.parquet")
+    # read_parquet("/data/datasets/users_2025_03.parquet")

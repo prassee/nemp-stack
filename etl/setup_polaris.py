@@ -10,8 +10,8 @@ import base64
 import requests
 
 POLARIS_URL = "http://localhost:8181"
-CLIENT_ID = "c208b265597a57cc"
-CLIENT_SECRET = "b0d74647fdc58fa84c6ac099cd34260f"
+CLIENT_ID = "75e97f33fddb4e7f"
+CLIENT_SECRET = "4c4fdd288ab66024d90455554954b037"
 
 
 def get_bearer_token() -> str:
@@ -242,3 +242,10 @@ def grant_catalog_role(token: str, catalog_name: str = "warehouse") -> bool:
     print(f"    Response: {response.status_code} - {response.text}")
 
     return True
+
+
+if __name__ == "__main__":
+    token = get_bearer_token()
+    grant_catalog_role(token, "warehouse")
+    print(f"Obtained bearer token: {token}...")
+    print(list_catalogs(token))
