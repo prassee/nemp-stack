@@ -45,17 +45,19 @@ def list_iceberg_catalogs() -> list[dict]:
         return []
 
 
-s3_file = "s3://stage/backfill/users/users_2025_01.parquet"
-s3_file = "s3://stage/backfill/events/events_2025_01_01.parquet"
-# Read parquet from S3
-df: pl.DataFrame = pl.read_parquet(
-    s3_file,
-    storage_options={
-        "endpoint_url": MINIO_ENDPOINT,
-        "aws_access_key_id": MINIO_ACCESS_KEY,
-        "aws_secret_access_key": MINIO_SECRET_KEY,
-    },
-)
+def load_df_from_s3() -> pl.DataFrame:
+    s3_file = "s3://stage/backfill/users/users_2025_01.parquet"
+    s3_file = "s3://stage/backfill/events/events_2025_01_01.parquet"
+    # Read parquet from S3
+    df: pl.DataFrame = pl.read_parquet(
+        s3_file,
+        storage_options={
+            "endpoint_url": MINIO_ENDPOINT,
+            "aws_access_key_id": MINIO_ACCESS_KEY,
+            "aws_secret_access_key": MINIO_SECRET_KEY,
+        },
+    )
+    return df
 
 
 if __name__ == "__main__":
@@ -68,9 +70,9 @@ if __name__ == "__main__":
             props = catalog["properties"]
             if "defaults" in props:
                 print(f"    defaults: {props['defaults']}")
-    print()
 
     print("DataFrame Info:")
     print("=" * 40)
+    df = load_df_from_s3()
     print(df.describe())
     print(df.head(10))
