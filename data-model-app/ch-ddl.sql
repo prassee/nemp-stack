@@ -1,3 +1,6 @@
+drop table if exists unnest_users  ;
+drop table if exists unnest_events ;
+
 create table unnest_users 
 ENGINE = IcebergS3('http://minio:9000/warehouse/unnest/users/', 'minioadmin', 'minioadmin') 
 SETTINGS 
@@ -7,7 +10,7 @@ storage_warehouse = 'warehouse',
 object_storage_endpoint = 'http://minio:9000',
 storage_region = 'us-east-1';
 
-create table unnest_events
+create table if not exists unnest_events
 ENGINE = IcebergS3('http://minio:9000/warehouse/unnest/events/', 'minioadmin', 'minioadmin') 
 SETTINGS 
 storage_catalog_type = 'rest' ,

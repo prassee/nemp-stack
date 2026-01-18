@@ -1,5 +1,6 @@
 from typing import Any, Tuple
 import polars as pl
+import s3fs
 from pyiceberg.catalog import Catalog, load_catalog
 from pyiceberg.table import Table
 
@@ -97,6 +98,100 @@ def ensure_namespace(catalog: Catalog, namespace: str) -> None:
     if namespace not in namespaces:
         catalog.create_namespace(namespace)
         print(f"Created namespace: {namespace}")
+
+
+def get_s3_filesystem() -> s3fs.S3FileSystem:
+    """Create S3FileSystem for MinIO access."""
+    return s3fs.S3FileSystem(
+        endpoint_url=MINIO_ENDPOINT,
+        key=MINIO_ACCESS_KEY,
+        secret=MINIO_SECRET_KEY,
+    )
+
+
+def drop_iceberg_table(
+    catalog: Catalog,
+    namespace: str,
+    table_name: str,
+    purge: bool = True,
+) -> None:
+    """
+    Drop an Iceberg table from the catalog.
+
+    Args:
+        catalog: PyIceberg catalog instance
+        namespace: Iceberg namespace (e.g., 'analytics')
+        table_name: Name of the table to drop
+        purge: If True, also delete the underlying data files in S3/MinIO.
+               If False, only remove table from catalog metadata.
+    """
+    table_id: str = f"{namespace}.{table_name}"
+
+    if purge:
+        try:
+            # Load table first to get its location before dropping
+            table: Table = catalog.load_table(table_id)
+            table_location: str = table.metadata.location
+            print(f"Table location: {table_location}")
+
+            # Collect all files to delete
+            files_to_delete: set[str] = set()
+
+            # Add metadata location
+            files_to_delete.add(table.metadata_location)
+
+            # Add previous metadata files
+            for log in table.metadata.metadata_log:
+                files_to_delete.add(log.metadata_file)
+
+            # Get all snapshots and their associated files
+            io = table.io
+            for snapshot in table.metadata.snapshots:
+                # Add manifest list
+                files_to_delete.add(snapshot.manifest_list)
+
+                # Get manifests and data files
+                for manifest in snapshot.manifests(io):
+                    files_to_delete.add(manifest.manifest_path)
+                    for entry in manifest.fetch_manifest_entry(
+                        io, discard_deleted=False
+                    ):
+                        files_to_delete.add(entry.data_file.file_path)
+
+            # Drop table from catalog first
+            catalog.drop_table(table_id)
+            print(f"Dropped table from catalog: {table_id}")
+
+            # Now delete all files from S3/MinIO
+            fs = get_s3_filesystem()
+            deleted_count = 0
+            for file_path in files_to_delete:
+                try:
+                    # Convert s3:// path to path without scheme for s3fs
+                    clean_path = file_path.replace("s3://", "")
+                    fs.rm(clean_path)
+                    deleted_count += 1
+                except Exception as e:
+                    print(f"  Warning: Failed to delete {file_path}: {e}")
+
+            print(f"Deleted {deleted_count} files from S3/MinIO")
+
+            # Also try to remove the table directory if empty
+            try:
+                table_dir = table_location.replace("s3://", "")
+                fs.rm(table_dir, recursive=True)
+                print(f"Removed table directory: {table_location}")
+            except Exception:
+                pass  # Directory might not be empty or already deleted
+
+        except Exception as e:
+            print(f"Error purging table {table_id}: {e}")
+    else:
+        try:
+            catalog.drop_table(table_id)
+            print(f"Dropped table (data retained): {table_id}")
+        except Exception as e:
+            print(f"Error dropping table {table_id}: {e}")
 
 
 def register_iceberg_table(
@@ -203,21 +298,24 @@ if __name__ == "__main__":
             for table in tables:
                 print(f"    - {table}")
 
-    # print("=" * 60)
+    drop_iceberg_table(get_iceberg_catalog(), "unnest", "users")
+    drop_iceberg_table(get_iceberg_catalog(), "unnest", "events")
+
+    print("=" * 60)
     # print("Loading and Registering Tables")
-    # print("=" * 60)
+    print("=" * 60)
     # users_df, events_df = load_and_register_tables("unnest")
-    # print()
-    #
-    # print("=" * 60)
-    # print("Iceberg Catalogs (After)")
-    # print("=" * 60)
-    # catalogs = list_iceberg_catalogs()
-    # for catalog in catalogs:
-    #     print(f"  Catalog: {catalog['name']}")
-    #     print(f"  URI: {catalog['uri']}")
-    #     print(f"  Namespaces: {catalog['namespaces']}")
-    #     print(f"  Tables:")
-    #     for ns, tables in catalog["tables"].items():
-    #         for table in tables:
-    #             print(f"    - {table}")
+    print()
+
+    print("=" * 60)
+    print("Iceberg Catalogs (After)")
+    print("=" * 60)
+    catalogs = list_iceberg_catalogs()
+    for catalog in catalogs:
+        print(f"  Catalog: {catalog['name']}")
+        print(f"  URI: {catalog['uri']}")
+        print(f"  Namespaces: {catalog['namespaces']}")
+        print(f"  Tables:")
+        for ns, tables in catalog["tables"].items():
+            for table in tables:
+                print(f"    - {table}")
