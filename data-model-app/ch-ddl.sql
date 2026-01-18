@@ -16,8 +16,5 @@ storage_warehouse = 'warehouse',
 object_storage_endpoint = 'http://minio:9000',
 storage_region = 'us-east-1';
 
-
 select * from unnest_users as uu ;
-
 select * from unnest_events as uu ;
-
