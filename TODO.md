@@ -1,15 +1,15 @@
 # Kanban Board
 
 ## Backlog
-- [ ] configure SQLMesh 
-- [ ] make CH to read Iceberg taebls and create MVs
 - [ ] Bronze - replica of MySQL tables 
 - [ ] Silver - Fact Tables
 - [ ] Gold - Analytics based on CH MVs
-- [ ] arrange buckets for medallion architecture 
 
 ## In Progress
-- [ ] connect to Mysql 
+- [ ] arrange storage folders in Minio for medallion architecture
 
 ## Done
 - [x] load data to the Mysql Tables
+- [x] configure SQLMesh 
+- [x] connect to Mysql 
+- [x] make CH to read Iceberg taebls and create MVs
