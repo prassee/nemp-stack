@@ -217,7 +217,8 @@ services:
       AWS_SECRET_ACCESS_KEY: minioadmin
     volumes:
       - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
-      - ./spark-jobs:/opt/spark-jobs
+      - ./pyspark-etl:/opt/spark-jobs
+      - ./jars:/opt/spark-jars:ro
     depends_on:
       minio-init:
         condition: service_completed_successfully
@@ -244,7 +245,8 @@ services:
       - "8081:8081"
     volumes:
       - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
-      - ./spark-jobs:/opt/spark-jobs
+      - ./pyspark-etl:/opt/spark-jobs
+      - ./jars:/opt/spark-jars:ro
     depends_on:
       spark-master:
         condition: service_healthy
@@ -266,7 +268,8 @@ services:
       - "8082:8082"
     volumes:
       - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
-      - ./spark-jobs:/opt/spark-jobs
+      - ./pyspark-etl:/opt/spark-jobs
+      - ./jars:/opt/spark-jars:ro
     depends_on:
       spark-master:
         condition: service_healthy
