@@ -4,6 +4,7 @@
 	start-iceberg-rest stop-iceberg-rest \
 	start-clickhouse stop-clickhouse \
 	start-mysql stop-mysql \
+	start-spark stop-spark \
 	status logs
 
 # Default target
@@ -33,6 +34,9 @@ help:
 	@echo ""
 	@echo "  start-mysql         Start MySQL"
 	@echo "  stop-mysql          Stop MySQL"
+	@echo ""
+	@echo "  start-spark         Start Spark cluster (master, workers, history server)"
+	@echo "  stop-spark          Stop Spark cluster"
 
 # All services
 up:
@@ -82,3 +86,10 @@ start-mysql:
 
 stop-mysql:
 	docker compose stop mysql
+
+# Spark
+start-spark:
+	docker compose up -d spark-master spark-worker-1 spark-worker-2 spark-history-server
+
+stop-spark:
+	docker compose stop spark-master spark-worker-1 spark-worker-2 spark-history-server

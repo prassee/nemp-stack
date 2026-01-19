@@ -32,7 +32,8 @@ services:
       /bin/sh -c "
       /usr/bin/mc alias set minio http://minio:9000 minioadmin minioadmin &&
       /usr/bin/mc mb minio/warehouse --ignore-existing &&
-      echo 'MinIO warehouse bucket initialized'
+      /usr/bin/mc mb minio/spark-logs --ignore-existing &&
+      echo 'MinIO buckets initialized'
       "
     restart: on-failure
 
@@ -197,4 +198,95 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  spark-master:
+    image: bitnami/spark:3.5
+    container_name: spark-master
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    environment:
+      SPARK_MODE: master
+      SPARK_MASTER_HOST: spark-master
+      SPARK_MASTER_PORT: 7077
+      SPARK_MASTER_WEBUI_PORT: 8080
+      SPARK_HISTORY_OPTS: "-Dspark.history.fs.logDirectory=s3a://spark-logs/"
+      SPARK_CONF_DIR: /opt/bitnami/spark/conf
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    volumes:
+      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./spark-jobs:/opt/spark-jobs
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  spark-worker-1:
+    image: bitnami/spark:3.5
+    container_name: spark-worker-1
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_WEBUI_PORT: 8081
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_CORES: 2
+      SPARK_CONF_DIR: /opt/bitnami/spark/conf
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./spark-jobs:/opt/spark-jobs
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    restart: unless-stopped
+
+  spark-worker-2:
+    image: bitnami/spark:3.5
+    container_name: spark-worker-2
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_WEBUI_PORT: 8082
+      SPARK_WORKER_MEMORY: 2g
+      SPARK_WORKER_CORES: 2
+      SPARK_CONF_DIR: /opt/bitnami/spark/conf
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      - ./spark-jobs:/opt/spark-jobs
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    restart: unless-stopped
+
+  spark-history-server:
+    image: bitnami/spark:3.5
+    container_name: spark-history-server
+    ports:
+      - "18080:18080"
+    environment:
+      SPARK_MODE: master
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+    command: >
+      /opt/bitnami/spark/sbin/start-history-server.sh
+      --properties-file /opt/bitnami/spark/conf/spark-defaults.conf
+    volumes:
+      - ./config/spark/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
     restart: unless-stopped
