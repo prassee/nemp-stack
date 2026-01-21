@@ -38,14 +38,10 @@ services:
       /bin/sh -c "
       /usr/bin/mc alias set minio http://minio:9000 minioadmin minioadmin &&
       /usr/bin/mc mb minio/warehouse --ignore-existing &&
-      /usr/bin/mc mb minio/spark-logs --ignore-existing &&
       echo 'MinIO buckets initialized'
       "
     restart: on-failure
 
-  # LakeKeeper Iceberg Catalog (Rust-based REST catalog with built-in table maintenance)
-  # Note: For local Python development, add "127.0.0.1 minio" to your /etc/hosts file
-  # This allows PyIceberg to resolve the minio hostname that LakeKeeper returns in credentials
   lakekeeper-db:
     image: postgres:17-alpine
     container_name: lakekeeper-db
@@ -61,20 +57,6 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
-  lakekeeper-migrate:
-    image: quay.io/lakekeeper/catalog:latest
-    container_name: lakekeeper-migrate
-    environment:
-      LAKEKEEPER__PG_ENCRYPTION_KEY: "this-is-NOT-secure-change-in-prod"
-      LAKEKEEPER__PG_DATABASE_URL_READ: postgresql://lakekeeper:lakekeeper@lakekeeper-db:5432/lakekeeper
-      LAKEKEEPER__PG_DATABASE_URL_WRITE: postgresql://lakekeeper:lakekeeper@lakekeeper-db:5432/lakekeeper
-      RUST_LOG: info
-    command: ["migrate"]
-    depends_on:
-      lakekeeper-db:
-        condition: service_healthy
-    restart: on-failure
 
   lakekeeper:
     image: quay.io/lakekeeper/catalog:latest
@@ -94,76 +76,11 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      lakekeeper-migrate:
-        condition: service_completed_successfully
+      lakekeeper-db:
+        condition: service_healthy
       minio:
         condition: service_healthy
     restart: unless-stopped
-
-  lakekeeper-bootstrap:
-    image: curlimages/curl
-    container_name: lakekeeper-bootstrap
-    depends_on:
-      lakekeeper:
-        condition: service_healthy
-    restart: "no"
-    command:
-      - "-X"
-      - "POST"
-      - "http://lakekeeper:8181/management/v1/bootstrap"
-      - "-H"
-      - "Content-Type: application/json"
-      - "--data"
-      - '{"accept-terms-of-use": true}'
-      - "-o"
-      - "/dev/null"
-      - "-w"
-      - "%{http_code}"
-
-  lakekeeper-warehouse:
-    image: curlimages/curl
-    container_name: lakekeeper-warehouse
-    depends_on:
-      lakekeeper:
-        condition: service_healthy
-      lakekeeper-bootstrap:
-        condition: service_completed_successfully
-      minio-init:
-        condition: service_completed_successfully
-    restart: "no"
-    command:
-      - "-X"
-      - "POST"
-      - "http://lakekeeper:8181/management/v1/warehouse"
-      - "-H"
-      - "Content-Type: application/json"
-      - "--data"
-      - |
-        {
-          "warehouse-name": "warehouse",
-          "project-id": "00000000-0000-0000-0000-000000000000",
-          "storage-profile": {
-            "type": "s3",
-            "bucket": "warehouse",
-            "key-prefix": null,
-            "assume-role-arn": null,
-            "endpoint": "http://minio:9000",
-            "region": "us-east-1",
-            "path-style-access": true,
-            "flavor": "minio",
-            "sts-enabled": true
-          },
-          "storage-credential": {
-            "type": "s3",
-            "credential-type": "access-key",
-            "aws-access-key-id": "minioadmin",
-            "aws-secret-access-key": "minioadmin"
-          }
-        }
-      - "-o"
-      - "/dev/null"
-      - "-w"
-      - "%{http_code}"
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
@@ -280,23 +197,3 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  spark-history-server:
-    image: apache/spark:3.5.0
-    container_name: spark-history-server
-    ports:
-      - "18080:18080"
-    environment:
-      SPARK_NO_DAEMONIZE: "true"
-      SPARK_HISTORY_OPTS: "-Dspark.history.fs.logDirectory=s3a://spark-logs/ -Dspark.hadoop.fs.s3a.endpoint=http://minio:9000 -Dspark.hadoop.fs.s3a.access.key=minioadmin -Dspark.hadoop.fs.s3a.secret.key=minioadmin -Dspark.hadoop.fs.s3a.path.style.access=true -Dspark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem"
-      SPARK_CLASSPATH: "/opt/spark-jars/*"
-      AWS_ACCESS_KEY_ID: minioadmin
-      AWS_SECRET_ACCESS_KEY: minioadmin
-    command: >
-      bash -c "export SPARK_DIST_CLASSPATH=$$(hadoop classpath):/opt/spark-jars/* && /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer"
-    volumes:
-      - ./config/spark/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf:ro
-      - ./jars:/opt/spark-jars:ro
-    depends_on:
-      minio-init:
-        condition: service_completed_successfully
-    restart: unless-stopped

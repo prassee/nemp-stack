@@ -28,7 +28,7 @@ def create_spark_session() -> SparkSession:
         .config("spark.sql.catalog.lakekeeper", "org.apache.iceberg.spark.SparkCatalog")
         .config("spark.sql.catalog.lakekeeper.type", "rest")
         .config("spark.sql.catalog.lakekeeper.uri", "http://lakekeeper:8181/catalog")
-        .config("spark.sql.catalog.lakekeeper.warehouse", "warehouse")
+        .config("spark.sql.catalog.lakekeeper.warehouse", "s3://lakekeeper/warehouse")
         .config(
             "spark.sql.catalog.lakekeeper.io-impl", "org.apache.iceberg.aws.s3.S3FileIO"
         )
@@ -71,13 +71,15 @@ def main():
     spark.sparkContext.setLogLevel("WARN")
 
     try:
+        # Specify namespace
+        namespace = "demo"
         # Create namespace
         create_namespace(spark, namespace)
 
         # List catalog info
         list_catalog_info(spark)
 
-     except Exception as e:
+    except Exception as e:
         print(f"Error: {e}")
         raise
     finally:
