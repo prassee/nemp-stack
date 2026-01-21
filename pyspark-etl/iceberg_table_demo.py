@@ -67,7 +67,7 @@ def main():
     print("=" * 60)
 
     # Create Spark session
-    spark = create_spark_session()
+    spark: SparkSession = create_spark_session()
     spark.sparkContext.setLogLevel("WARN")
 
     try:

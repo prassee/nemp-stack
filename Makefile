@@ -1,15 +1,15 @@
 .PHONY: help up down \
 	start-minio stop-minio \
-	start-iceberg-catalog-db stop-iceberg-catalog-db \
-	start-iceberg-rest stop-iceberg-rest \
+	start-lakekeeper-db stop-lakekeeper-db \
+	start-lakekeeper stop-lakekeeper \
 	start-clickhouse stop-clickhouse \
 	start-mysql stop-mysql \
 	start-spark stop-spark \
 	status logs \
 	podman-up podman-down \
 	podman-start-minio podman-stop-minio \
-	podman-start-iceberg-catalog-db podman-stop-iceberg-catalog-db \
-	podman-start-iceberg-rest podman-stop-iceberg-rest \
+	podman-start-lakekeeper-db podman-stop-lakekeeper-db \
+	podman-start-lakekeeper podman-stop-lakekeeper \
 	podman-start-clickhouse podman-stop-clickhouse \
 	podman-start-mysql podman-stop-mysql \
 	podman-start-spark podman-stop-spark \
@@ -34,11 +34,11 @@ help:
 	@echo "  start-minio         Start MinIO (object storage)"
 	@echo "  stop-minio          Stop MinIO"
 	@echo ""
-	@echo "  start-iceberg-catalog-db  Start Iceberg catalog PostgreSQL database"
-	@echo "  stop-iceberg-catalog-db   Stop Iceberg catalog PostgreSQL database"
+	@echo "  start-lakekeeper-db       Start LakeKeeper PostgreSQL database"
+	@echo "  stop-lakekeeper-db        Stop LakeKeeper PostgreSQL database"
 	@echo ""
-	@echo "  start-iceberg-rest  Start Iceberg REST catalog"
-	@echo "  stop-iceberg-rest   Stop Iceberg REST catalog"
+	@echo "  start-lakekeeper          Start LakeKeeper Iceberg catalog (with bootstrap and warehouse init)"
+	@echo "  stop-lakekeeper           Stop LakeKeeper Iceberg catalog"
 	@echo ""
 	@echo "  start-clickhouse    Start ClickHouse"
 	@echo "  stop-clickhouse     Stop ClickHouse"
@@ -62,11 +62,11 @@ help:
 	@echo "  podman-start-minio         Start MinIO (object storage)"
 	@echo "  podman-stop-minio          Stop MinIO"
 	@echo ""
-	@echo "  podman-start-iceberg-catalog-db  Start Iceberg catalog PostgreSQL database"
-	@echo "  podman-stop-iceberg-catalog-db   Stop Iceberg catalog PostgreSQL database"
+	@echo "  podman-start-lakekeeper-db       Start LakeKeeper PostgreSQL database"
+	@echo "  podman-stop-lakekeeper-db        Stop LakeKeeper PostgreSQL database"
 	@echo ""
-	@echo "  podman-start-iceberg-rest  Start Iceberg REST catalog"
-	@echo "  podman-stop-iceberg-rest   Stop Iceberg REST catalog"
+	@echo "  podman-start-lakekeeper          Start LakeKeeper Iceberg catalog (with bootstrap and warehouse init)"
+	@echo "  podman-stop-lakekeeper           Stop LakeKeeper Iceberg catalog"
 	@echo ""
 	@echo "  podman-start-clickhouse    Start ClickHouse"
 	@echo "  podman-stop-clickhouse     Stop ClickHouse"
@@ -98,19 +98,20 @@ stop-minio:
 	docker compose stop minio minio-init
 	docker compose rm -f minio-init
 
-# Iceberg Catalog DB
-start-iceberg-catalog-db:
-	docker compose up -d iceberg-catalog-db
+# LakeKeeper DB
+start-lakekeeper-db:
+	docker compose up -d lakekeeper-db
 
-stop-iceberg-catalog-db:
-	docker compose stop iceberg-catalog-db
+stop-lakekeeper-db:
+	docker compose stop lakekeeper-db
 
-# Iceberg REST Catalog
-start-iceberg-rest:
-	docker compose up -d iceberg-rest
+# LakeKeeper Iceberg Catalog
+start-lakekeeper:
+	docker compose up -d lakekeeper-db lakekeeper-migrate lakekeeper lakekeeper-bootstrap lakekeeper-warehouse
 
-stop-iceberg-rest:
-	docker compose stop iceberg-rest
+stop-lakekeeper:
+	docker compose stop lakekeeper lakekeeper-migrate lakekeeper-bootstrap lakekeeper-warehouse
+	docker compose rm -f lakekeeper-migrate lakekeeper-bootstrap lakekeeper-warehouse
 
 # ClickHouse
 start-clickhouse:
@@ -158,19 +159,20 @@ podman-stop-minio:
 	podman-compose stop minio minio-init
 	podman-compose rm -f minio-init
 
-# Iceberg Catalog DB (Podman)
-podman-start-iceberg-catalog-db:
-	podman-compose up -d iceberg-catalog-db
+# LakeKeeper DB (Podman)
+podman-start-lakekeeper-db:
+	podman-compose up -d lakekeeper-db
 
-podman-stop-iceberg-catalog-db:
-	podman-compose stop iceberg-catalog-db
+podman-stop-lakekeeper-db:
+	podman-compose stop lakekeeper-db
 
-# Iceberg REST Catalog (Podman)
-podman-start-iceberg-rest:
-	podman-compose up -d iceberg-rest
+# LakeKeeper Iceberg Catalog (Podman)
+podman-start-lakekeeper:
+	podman-compose up -d lakekeeper-db lakekeeper-migrate lakekeeper lakekeeper-bootstrap lakekeeper-warehouse
 
-podman-stop-iceberg-rest:
-	podman-compose stop iceberg-rest
+podman-stop-lakekeeper:
+	podman-compose stop lakekeeper lakekeeper-migrate lakekeeper-bootstrap lakekeeper-warehouse
+	podman-compose rm -f lakekeeper-migrate lakekeeper-bootstrap lakekeeper-warehouse
 
 # ClickHouse (Podman)
 podman-start-clickhouse:
