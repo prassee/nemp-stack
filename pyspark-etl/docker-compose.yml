@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  spark:
+    image: apache/spark:3.5.0
+    # By default, container runs as root
+    # No volumes for ~/.ivy2, it will be created inside the container at /root/.ivy2
+    volumes:
+      - ./app:/app   # Only mount your code if needed; remove if not used
+    working_dir: /app
+    command: [
+      "spark-submit",
+      "--packages", "org.apache.iceberg:iceberg-spark-runtime-3.5_2.12,org.apache.iceberg:iceberg-aws-bundle:1.5.0",
+      # Add your main script/class and arguments here
+      # "your_spark_script.py" 
+    ]
+    environment:
+      - SPARK_HOME=/opt/spark
