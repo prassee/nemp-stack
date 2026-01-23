@@ -1,6 +1,7 @@
-# Docker compose data directories
-data/
+jars/
+data
 data-model-app/logs
-data-model-app/logs
-data-model-app/logs
-**/__pycache__
+data-publish-app/__pycache__
+etl/__pycache__
+jars
+jars
