@@ -4,17 +4,15 @@
 	start-lakekeeper stop-lakekeeper \
 	start-clickhouse stop-clickhouse \
 	start-mysql stop-mysql \
-	start-spark stop-spark \
-	status logs \
+		status logs \
 	podman-up podman-down \
 	podman-start-minio podman-stop-minio \
 	podman-start-lakekeeper-db podman-stop-lakekeeper-db \
 	podman-start-lakekeeper podman-stop-lakekeeper \
 	podman-start-clickhouse podman-stop-clickhouse \
 	podman-start-mysql podman-stop-mysql \
-	podman-start-spark podman-stop-spark \
 	podman-status podman-logs \
-	podman-iceberg-demo
+
 
 # Default target
 help:
@@ -47,8 +45,8 @@ help:
 	@echo "  start-mysql         Start MySQL"
 	@echo "  stop-mysql          Stop MySQL"
 	@echo ""
-	@echo "  start-spark         Start Spark cluster (master, workers)"
-	@echo "  stop-spark          Stop Spark cluster"
+	@echo ""
+	@echo ""
 	@echo ""
 	@echo "Podman Compose Commands:"
 	@echo "========================"
@@ -75,10 +73,10 @@ help:
 	@echo "  podman-start-mysql         Start MySQL"
 	@echo "  podman-stop-mysql          Stop MySQL"
 	@echo ""
-	@echo "  podman-start-spark         Start Spark cluster (master, workers)"
-	@echo "  podman-stop-spark          Stop Spark cluster"
 	@echo ""
-	@echo "  podman-iceberg-demo        Run Iceberg table demo job in Spark (Podman)"
+	@echo ""
+	@echo ""
+	@echo ""
 
 # All services
 up:
@@ -130,12 +128,6 @@ start-mysql:
 stop-mysql:
 	docker compose stop mysql
 
-# Spark
-start-spark:
-	docker compose up -d spark-master spark-worker-1 spark-worker-2
-
-stop-spark:
-	docker compose stop spark-master spark-worker-1 spark-worker-2
 
 # ============================================================================
 # Podman Compose Commands
@@ -191,16 +183,5 @@ podman-start-mysql:
 podman-stop-mysql:
 	podman-compose stop mysql
 
-# Spark (Podman)
-podman-start-spark:
-	podman-compose up -d spark-master spark-worker-1 spark-worker-2
 
-podman-stop-spark:
-	podman-compose stop spark-master spark-worker-1 spark-worker-2
-
-# Iceberg Demo (Podman)
-podman-iceberg-demo:
-	podman-compose exec spark-master /opt/spark/bin/spark-submit --master spark://spark-master:7077 \
-		--packages org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.7.1,org.apache.iceberg:iceberg-aws-bundle:1.7.1 \
-		/opt/spark-jobs/iceberg_table_demo.py
 

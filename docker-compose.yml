@@ -1,12 +1,12 @@
 version: "3.8"
 
-name: nmt-stack
+# name: nmt-stack
 
 networks:
   default:
     driver: bridge
-    driver_opts:
-      com.docker.network.bridge.enable_ip_masquerade: "true"
+    # driver_opts:
+    # com.docker.network.bridge.enable_ip_masquerade: "true"
 
 services:
   minio:
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-    restart: unless-stopped
+    restart: always
 
   clickhouse:
     image: clickhouse/clickhouse-server:latest
@@ -122,4 +122,3 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
-
