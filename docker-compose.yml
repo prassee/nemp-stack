@@ -122,3 +122,11 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  source-mysql:
+    image: olakego/source-mysql:latest
+    container_name: source-mysql
+    volumes:
+      - ./olake-config/config:/mnt/config
+    command: ["discover"]
+    restart: "no"

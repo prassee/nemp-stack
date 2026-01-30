@@ -165,6 +165,21 @@ def drop_iceberg_table(
         print(f"Error dropping table {table_id}: {e}")
 
 
+def drop_iceberg_namespace(catalog: Catalog, namespace: str) -> None:
+    """
+    Drop an Iceberg namespace from the catalog.
+
+    Args:
+        catalog: PyIceberg catalog instance
+        namespace: Iceberg namespace to drop
+    """
+    try:
+        catalog.drop_namespace(namespace)
+        print(f"Dropped namespace: {namespace}")
+    except Exception as e:
+        print(f"Error dropping namespace {namespace}: {e}")
+
+
 def register_iceberg_table(
     catalog: Catalog,
     namespace: str,
@@ -274,10 +289,17 @@ if __name__ == "__main__":
 
     list_tables()
     # Uncomment to load and register tables:
-    users_df, events_df = load_and_register_tables("unnest")
+    # users_df, events_df = load_and_register_tables("unnest")
 
     # Uncomment to drop tables:
     # drop_iceberg_table(get_iceberg_catalog(), "unnest", "users")
     # drop_iceberg_table(get_iceberg_catalog(), "unnest", "events")
+    iceberg_catalog = get_iceberg_catalog()
+    drop_iceberg_table(iceberg_catalog, "mysql_mixpanel", "users")
+    drop_iceberg_table(iceberg_catalog, "mysql_mixpanel", "events")
+    drop_iceberg_table(iceberg_catalog, "test_olake", "test_olake")
 
+    namespaces = ["test_olake", "mysql_mixpanel", "unnest"]
+    for ns in namespaces:
+        drop_iceberg_namespace(iceberg_catalog, ns)
     list_tables()

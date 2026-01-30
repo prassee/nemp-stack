@@ -270,4 +270,5 @@ def update_random_users(database: str, percentage: float = 0.15) -> None:
 
 
 if __name__ == "__main__":
-    insert_users("mixpanel")
+    # insert_users("mixpanel")
+    update_random_users("mixpanel", percentage=0.15)

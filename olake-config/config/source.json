@@ -1,0 +1,13 @@
+{
+  "hosts": "mysql",
+  "username": "mysql",
+  "password": "mysql",
+  "database": "mixpanel",
+  "port": 3306,
+  "tls_skip_verify": true,
+  "update_method": {
+    "initial_wait_time": 10
+  },
+  "max_threads": 5,
+  "backoff_retry_count": 2
+}

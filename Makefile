@@ -11,7 +11,7 @@
 	podman-start-lakekeeper podman-stop-lakekeeper \
 	podman-start-clickhouse podman-stop-clickhouse \
 	podman-start-mysql podman-stop-mysql \
-	podman-status podman-logs \
+	podman-status podman-logs 
 
 
 # Default target
@@ -163,11 +163,11 @@ podman-stop-lakekeeper-db:
 
 # LakeKeeper Iceberg Catalog (Podman)
 podman-start-lakekeeper:
-	podman-compose up -d lakekeeper-db lakekeeper-migrate lakekeeper lakekeeper-bootstrap lakekeeper-warehouse
+	podman-compose up -d lakekeeper-db lakekeeper
 
 podman-stop-lakekeeper:
-	podman-compose stop lakekeeper lakekeeper-migrate lakekeeper-bootstrap lakekeeper-warehouse
-	podman-compose rm -f lakekeeper-migrate lakekeeper-bootstrap lakekeeper-warehouse
+	podman-compose stop lakekeeper lakekeeper-db
+	podman-compose rm -f lakekeeper lakekeeper-db
 
 # ClickHouse (Podman)
 podman-start-clickhouse:
@@ -184,4 +184,23 @@ podman-stop-mysql:
 	podman-compose stop mysql
 
 
+podman-olake-discover-mysql:
+	podman run --rm \
+	--network nmt-stack_default \
+	--name source-mysql \
+	-v $(CURDIR)/olake-config/config:/mnt/config \
+	olakego/source-mysql:latest discover --config /mnt/config/source.json >> $(CURDIR)/olake-config/config/streams.json
 
+podman-olake-sync-mysql:
+	podman run --rm \
+	--network nmt-stack_default \
+	--name source-mysql \
+	-v $(CURDIR)/olake-config/config:/mnt/config \
+	olakego/source-mysql:latest sync --config /mnt/config/source.json --streams /mnt/config/streams.json --destination /mnt/config/destination.json 
+
+podman-olake-sync-state-mysql:
+	podman run --rm \
+	--network nmt-stack_default \
+	--name source-mysql \
+	-v $(CURDIR)/olake-config/config:/mnt/config \
+	olakego/source-mysql:latest sync --config /mnt/config/source.json --streams /mnt/config/streams.json --destination /mnt/config/destination.json --state /mnt/config/state.json 
