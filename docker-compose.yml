@@ -116,6 +116,8 @@ services:
       MYSQL_DATABASE: mysql
     volumes:
       - ./data/mysql:/var/lib/mysql
+      - ./scripts/init-cdc.sql:/docker-entrypoint-initdb.d/init-cdc.sql
+      - ./config/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -pmysql"]
       interval: 10s

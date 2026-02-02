@@ -1,1 +1,30 @@
-{"type":"STREAM","version":1,"streams":[{"stream":"events","namespace":"mixpanel","sync_mode":"","state":{"chunks":[],"created_at":"2026-01-26T03:17:32.000000000Z"}}]}
+{
+  "type": "STREAM",
+  "version": 1,
+  "global": {
+    "state": {
+      "server_id": 636951084,
+      "state": {
+        "position": {
+          "Name": "binlog.000019",
+          "Pos": 158
+        }
+      }
+    },
+    "streams": [
+      "mixpanel.users",
+      "mixpanel.events"
+    ]
+  },
+  "streams": [
+    {
+      "stream": "events",
+      "namespace": "mixpanel",
+      "sync_mode": "",
+      "state": {
+        "chunks": []
+      }
+    }
+  ]
+}
+
