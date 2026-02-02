@@ -2,6 +2,8 @@
 
 ## Backlog
 - [ ] Bronze - replica of MySQL tables 
+- [ ] OLAKE configs for backfill and CDC
+- [ ] run OLAKE CDC sync as cron job
 - [ ] Silver - Fact Tables
 - [ ] Gold - Analytics based on CH MVs
 

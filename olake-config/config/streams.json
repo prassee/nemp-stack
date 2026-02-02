@@ -7,7 +7,7 @@
         "normalization": true
       },
       {
-        "partition_regex": "",
+        "partition_regex": "/{now()}",
         "stream_name": "events",
         "normalization": true
       },

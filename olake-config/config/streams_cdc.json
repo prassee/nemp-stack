@@ -4,22 +4,26 @@
       {
         "partition_regex": "/{now()}",
         "stream_name": "users",
-        "normalization": true
+        "normalization": true,
+        "append_mode": false
       },
       {
-        "partition_regex": "",
+        "partition_regex": "/{now()}",
         "stream_name": "events",
-        "normalization": true
+        "normalization": true,
+        "append_mode": false
       },
       {
         "partition_regex": "",
         "stream_name": "experiment_variants",
-        "normalization": true
+        "normalization": true,
+        "append_mode": false
       },
       {
         "partition_regex": "",
         "stream_name": "experiments",
-        "normalization": true
+        "normalization": true,
+        "append_mode": false
       }
     ]
   },
@@ -220,7 +224,8 @@
           "os_name",
           "app_version"
         ],
-        "sync_mode": "full_refresh",
+        "sync_mode": "strict_cdc",
+        "cursor_field": "updated_at",
         "destination_database": "mysql:mixpanel",
         "destination_table": "users",
         "default_stream_properties": {
@@ -472,7 +477,8 @@
           "page_title",
           "properties"
         ],
-        "sync_mode": "full_refresh",
+        "sync_mode": "cdc",
+        "cursor_field": "created_at",
         "destination_database": "mysql:mixpanel",
         "destination_table": "events",
         "default_stream_properties": {
@@ -564,7 +570,7 @@
           "weight",
           "created_at"
         ],
-        "sync_mode": "full_refresh",
+        "sync_mode": "incremental",
         "destination_database": "mysql:mixpanel",
         "destination_table": "experiment_variants",
         "default_stream_properties": {
@@ -664,7 +670,7 @@
           "updated_at",
           "id"
         ],
-        "sync_mode": "full_refresh",
+        "sync_mode": "incremental",
         "destination_database": "mysql:mixpanel",
         "destination_table": "experiments",
         "default_stream_properties": {

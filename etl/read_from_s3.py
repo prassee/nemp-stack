@@ -269,6 +269,22 @@ def load_and_register_tables(namespace: str) -> Tuple[pl.DataFrame, pl.DataFrame
     return users_df, events_df
 
 
+def drop_all_namespace():
+    """Drop all example namespaces and their tables."""
+    # Uncomment to drop tables:
+    # drop_iceberg_table(get_iceberg_catalog(), "unnest", "users")
+    # drop_iceberg_table(get_iceberg_catalog(), "unnest", "events")
+    iceberg_catalog = get_iceberg_catalog()
+    drop_iceberg_table(iceberg_catalog, "mysql_mixpanel", "users")
+    drop_iceberg_table(iceberg_catalog, "mysql_mixpanel", "events")
+    drop_iceberg_table(iceberg_catalog, "test_olake", "test_olake")
+
+    catalog: Catalog = get_iceberg_catalog()
+    namespaces = ["test_olake", "mysql_mixpanel", "unnest"]
+    for ns in namespaces:
+        drop_iceberg_namespace(catalog, ns)
+
+
 if __name__ == "__main__":
 
     def list_tables():
@@ -291,15 +307,5 @@ if __name__ == "__main__":
     # Uncomment to load and register tables:
     # users_df, events_df = load_and_register_tables("unnest")
 
-    # Uncomment to drop tables:
-    # drop_iceberg_table(get_iceberg_catalog(), "unnest", "users")
-    # drop_iceberg_table(get_iceberg_catalog(), "unnest", "events")
-    iceberg_catalog = get_iceberg_catalog()
-    drop_iceberg_table(iceberg_catalog, "mysql_mixpanel", "users")
-    drop_iceberg_table(iceberg_catalog, "mysql_mixpanel", "events")
-    drop_iceberg_table(iceberg_catalog, "test_olake", "test_olake")
-
-    namespaces = ["test_olake", "mysql_mixpanel", "unnest"]
-    for ns in namespaces:
-        drop_iceberg_namespace(iceberg_catalog, ns)
+    drop_all_namespace()
     list_tables()
