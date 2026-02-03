@@ -1,4 +1,11 @@
 <clickhouse>
+    <!-- Skip check for user-level settings in config  -->
+    <skip_check_for_incorrect_settings>1</skip_check_for_incorrect_settings>
+    
+    <!-- Enable experimental features for DataLakeCatalog support -->
+    <allow_experimental_database_iceberg>1</allow_experimental_database_iceberg>
+    <allow_experimental_database_paimon_rest_catalog>1</allow_experimental_database_paimon_rest_catalog>
+    
     <!-- Named collections for Iceberg/S3 access -->
     <named_collections>
         <!-- Named collection for direct MinIO S3 access -->

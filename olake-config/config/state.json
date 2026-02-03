@@ -3,11 +3,11 @@
   "version": 1,
   "global": {
     "state": {
-      "server_id": 636951084,
+      "server_id": 1732708495,
       "state": {
         "position": {
-          "Name": "binlog.000019",
-          "Pos": 158
+          "Name": "binlog.000020",
+          "Pos": 129922846
         }
       }
     },

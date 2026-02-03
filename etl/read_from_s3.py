@@ -307,5 +307,5 @@ if __name__ == "__main__":
     # Uncomment to load and register tables:
     # users_df, events_df = load_and_register_tables("unnest")
 
-    drop_all_namespace()
-    list_tables()
+    # drop_all_namespace()
+    # list_tables()

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Users and roles configuration for ClickHouse -->
+    
+    <!-- Default user with no password for development -->
+    <users>
+        <default>
+            <!-- Password is empty (no authentication required) -->
+            <password></password>
+            
+            <!-- Allow access from any host -->
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            
+            <!-- Set resource quotas and settings -->
+            <profile>default</profile>
+            <quota>default</quota>
+        </default>
+    </users>
+
+    <!-- Default profile settings -->
+    <profiles>
+        <default>
+            <!-- Default settings for all users -->
+            <readonly>0</readonly>
+        </default>
+    </profiles>
+
+    <!-- Default quota (unlimited for development) -->
+    <quotas>
+        <default>
+            <interval>
+                <duration>3600</duration>
+            </interval>
+        </default>
+    </quotas>
+</clickhouse>

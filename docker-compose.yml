@@ -83,23 +83,31 @@ services:
     restart: always
 
   clickhouse:
-    image: clickhouse/clickhouse-server:latest
+    image: clickhouse/clickhouse-server:head
     container_name: clickhouse
     ports:
       - "8123:8123"
       - "9009:9000"
     environment:
+      CLICKHOUSE_DEFAULT_PASSWORD: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: default
+      CLICKHOUSE_DB: default
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       AWS_DEFAULT_REGION: us-east-1
     volumes:
       - ./data/clickhouse:/var/lib/clickhouse
       - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/iceberg.xml:ro
+      # - ./config/clickhouse/users.xml:/etc/clickhouse-server/config.d/users.xml:ro
+      - ./config/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ulimits:
       nofile:
         soft: 262144
         hard: 262144
     depends_on:
+      lakekeeper:
+        condition: service_healthy
       minio:
         condition: service_healthy
     restart: unless-stopped

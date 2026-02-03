@@ -155,13 +155,11 @@ def fetch_users(database: str) -> list[dict[str, Any]]:
         connection = get_connection(database)
         cursor = connection.cursor(dictionary=True)
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT user_id, os_name, device_model, app_version, 
                    country_code, city
             FROM users
-        """
-        )
+        """)
         return cast(list[dict[str, Any]], cursor.fetchall())
 
     except mysql.connector.Error as e:
@@ -174,7 +172,7 @@ def fetch_users(database: str) -> list[dict[str, Any]]:
             connection.close()
 
 
-def insert_events(database: str, events_per_day: int = 1000000) -> None:
+def insert_events(database: str, events_per_day: int = 10000) -> None:
     """Insert events for each day from Jan 1 to Jan 10, 2025."""
     start_date = datetime(2025, 1, 1)
     end_date = datetime(2025, 1, 10)
