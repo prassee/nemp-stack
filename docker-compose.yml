@@ -110,6 +110,12 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for other services to be ready...' &&
+        sleep 15 &&
+        /entrypoint.sh
+      "
     restart: unless-stopped
 
   mysql:
@@ -140,3 +146,14 @@ services:
       - ./olake-config/config:/mnt/config
     command: ["discover"]
     restart: "no"
+
+  tabix:
+    image: spoonest/clickhouse-tabix-web-client
+    container_name: tabix
+    ports:
+      - "8088:80"
+    environment:
+      - CLICKHOUSE_HOST=http://clickhouse:8123
+    depends_on:
+      - clickhouse
+    restart: unless-stopped
