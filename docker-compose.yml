@@ -99,7 +99,6 @@ services:
     volumes:
       - ./data/clickhouse:/var/lib/clickhouse
       - ./config/clickhouse/config.xml:/etc/clickhouse-server/config.d/iceberg.xml:ro
-      # - ./config/clickhouse/users.xml:/etc/clickhouse-server/config.d/users.xml:ro
       - ./config/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ulimits:
       nofile:

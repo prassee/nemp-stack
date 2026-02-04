@@ -2,6 +2,8 @@
 
 ## Backlog
 - [ ] Bronze - replica of MySQL tables 
+- [ ] change from Mysql to PGSQL
+- [ ] name the schemas to unnest,base,analytics
 - [ ] OLAKE configs for backfill and CDC
 - [ ] run OLAKE CDC sync as cron job
 - [ ] Silver - Fact Tables
