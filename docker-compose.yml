@@ -146,6 +146,18 @@ services:
     command: ["discover"]
     restart: "no"
 
+  temporal:
+    image: docker.io/temporalio/admin-tools:latest
+    container_name: temporal
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    volumes:
+      - ./data/temporal:/data
+    entrypoint: /usr/local/bin/temporal
+    command: server start-dev --ip 0.0.0.0 --ui-port 8233 --db-filename /data/temporal.db
+    restart: unless-stopped
+
   tabix:
     image: spoonest/clickhouse-tabix-web-client
     container_name: tabix
