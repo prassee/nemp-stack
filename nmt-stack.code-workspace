@@ -1,0 +1,15 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "nmt-stack"
+    },
+    {
+      "path": "data-publish-app"
+    },
+    {
+      "path": "etl"
+    },
+  ],
+  "settings": {},
+}

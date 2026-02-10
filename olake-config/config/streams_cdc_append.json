@@ -1,0 +1,683 @@
+{
+  "selected_streams": {
+    "mixpanel": [
+      {
+        "partition_regex": "/{now()}",
+        "stream_name": "users",
+        "normalization": true,
+        "append_mode": true
+      },
+      {
+        "partition_regex": "/{now()}",
+        "stream_name": "events",
+        "normalization": true,
+        "append_mode": true
+      },
+      {
+        "partition_regex": "",
+        "stream_name": "experiment_variants",
+        "normalization": true,
+        "append_mode": true
+      },
+      {
+        "partition_regex": "",
+        "stream_name": "experiments",
+        "normalization": true,
+        "append_mode": true
+      }
+    ]
+  },
+  "streams": [
+    {
+      "stream": {
+        "name": "users",
+        "namespace": "mixpanel",
+        "type_schema": {
+          "properties": {
+            "_olake_id": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "destination_column_name": "_olake_id"
+            },
+            "_olake_timestamp": {
+              "type": [
+                "null",
+                "timestamp_micro"
+              ],
+              "destination_column_name": "_olake_timestamp"
+            },
+            "_op_type": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "_op_type"
+            },
+            "app_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "app_version"
+            },
+            "avatar_url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "avatar_url"
+            },
+            "browser_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "browser_name"
+            },
+            "city": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "destination_column_name": "city"
+            },
+            "country_code": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "country_code"
+            },
+            "created_at": {
+              "type": [
+                "timestamp"
+              ],
+              "destination_column_name": "created_at"
+            },
+            "device_model": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "destination_column_name": "device_model"
+            },
+            "email": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "email"
+            },
+            "first_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "first_name"
+            },
+            "full_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "full_name"
+            },
+            "id": {
+              "type": [
+                "integer"
+              ],
+              "destination_column_name": "id"
+            },
+            "last_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "last_name"
+            },
+            "last_seen_at": {
+              "type": [
+                "timestamp",
+                "null"
+              ],
+              "destination_column_name": "last_seen_at"
+            },
+            "os_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "os_name"
+            },
+            "phone": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "phone"
+            },
+            "properties": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "properties"
+            },
+            "region": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "destination_column_name": "region"
+            },
+            "timezone": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "timezone"
+            },
+            "updated_at": {
+              "type": [
+                "timestamp"
+              ],
+              "destination_column_name": "updated_at"
+            },
+            "user_id": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "user_id"
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh",
+          "incremental",
+          "cdc",
+          "strict_cdc"
+        ],
+        "source_defined_primary_key": [
+          "id"
+        ],
+        "available_cursor_fields": [
+          "user_id",
+          "phone",
+          "timezone",
+          "browser_name",
+          "device_model",
+          "created_at",
+          "id",
+          "avatar_url",
+          "country_code",
+          "properties",
+          "updated_at",
+          "last_seen_at",
+          "email",
+          "last_name",
+          "full_name",
+          "first_name",
+          "city",
+          "region",
+          "os_name",
+          "app_version"
+        ],
+        "sync_mode": "strict_cdc",
+        "cursor_field": "updated_at",
+        "destination_database": "mysql:mixpanel",
+        "destination_table": "users",
+        "default_stream_properties": {
+          "normalization": true,
+          "append_mode": true
+        }
+      }
+    },
+    {
+      "stream": {
+        "name": "events",
+        "namespace": "mixpanel",
+        "type_schema": {
+          "properties": {
+            "_olake_id": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "destination_column_name": "_olake_id"
+            },
+            "_olake_timestamp": {
+              "type": [
+                "timestamp_micro",
+                "null"
+              ],
+              "destination_column_name": "_olake_timestamp"
+            },
+            "_op_type": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "_op_type"
+            },
+            "app_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "app_version"
+            },
+            "browser_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "browser_name"
+            },
+            "browser_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "browser_version"
+            },
+            "city": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "city"
+            },
+            "country_code": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "country_code"
+            },
+            "created_at": {
+              "type": [
+                "timestamp"
+              ],
+              "destination_column_name": "created_at"
+            },
+            "currency_code": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "currency_code"
+            },
+            "device_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "device_id"
+            },
+            "device_model": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "device_model"
+            },
+            "event_name": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "event_name"
+            },
+            "event_time": {
+              "type": [
+                "integer"
+              ],
+              "destination_column_name": "event_time"
+            },
+            "experiment_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "experiment_id"
+            },
+            "id": {
+              "type": [
+                "integer"
+              ],
+              "destination_column_name": "id"
+            },
+            "insert_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "insert_id"
+            },
+            "ip_address": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "ip_address"
+            },
+            "os_name": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "destination_column_name": "os_name"
+            },
+            "os_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "os_version"
+            },
+            "page_title": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "page_title"
+            },
+            "page_url": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "page_url"
+            },
+            "properties": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "properties"
+            },
+            "referrer": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "referrer"
+            },
+            "revenue": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "destination_column_name": "revenue"
+            },
+            "screen_name": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "screen_name"
+            },
+            "session_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "session_id"
+            },
+            "user_id": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "user_id"
+            },
+            "variant_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "variant_id"
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh",
+          "incremental",
+          "cdc",
+          "strict_cdc"
+        ],
+        "source_defined_primary_key": [
+          "id"
+        ],
+        "available_cursor_fields": [
+          "created_at",
+          "event_name",
+          "user_id",
+          "event_time",
+          "session_id",
+          "os_version",
+          "device_model",
+          "referrer",
+          "os_name",
+          "country_code",
+          "city",
+          "page_url",
+          "screen_name",
+          "experiment_id",
+          "id",
+          "device_id",
+          "browser_name",
+          "browser_version",
+          "ip_address",
+          "variant_id",
+          "revenue",
+          "currency_code",
+          "insert_id",
+          "app_version",
+          "page_title",
+          "properties"
+        ],
+        "sync_mode": "cdc",
+        "cursor_field": "created_at",
+        "destination_database": "mysql:mixpanel",
+        "destination_table": "events",
+        "default_stream_properties": {
+          "normalization": true,
+          "append_mode": true
+        }
+      }
+    },
+    {
+      "stream": {
+        "name": "experiment_variants",
+        "namespace": "mixpanel",
+        "type_schema": {
+          "properties": {
+            "_olake_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "_olake_id"
+            },
+            "_olake_timestamp": {
+              "type": [
+                "timestamp_micro",
+                "null"
+              ],
+              "destination_column_name": "_olake_timestamp"
+            },
+            "_op_type": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "_op_type"
+            },
+            "created_at": {
+              "type": [
+                "timestamp"
+              ],
+              "destination_column_name": "created_at"
+            },
+            "experiment_id": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "experiment_id"
+            },
+            "id": {
+              "type": [
+                "integer"
+              ],
+              "destination_column_name": "id"
+            },
+            "variant_id": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "variant_id"
+            },
+            "variant_name": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "variant_name"
+            },
+            "weight": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "destination_column_name": "weight"
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh",
+          "incremental",
+          "cdc",
+          "strict_cdc"
+        ],
+        "source_defined_primary_key": [
+          "id"
+        ],
+        "available_cursor_fields": [
+          "id",
+          "experiment_id",
+          "variant_id",
+          "variant_name",
+          "weight",
+          "created_at"
+        ],
+        "sync_mode": "incremental",
+        "destination_database": "mysql:mixpanel",
+        "destination_table": "experiment_variants",
+        "default_stream_properties": {
+          "normalization": true,
+          "append_mode": true
+        }
+      }
+    },
+    {
+      "stream": {
+        "name": "experiments",
+        "namespace": "mixpanel",
+        "type_schema": {
+          "properties": {
+            "_olake_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "_olake_id"
+            },
+            "_olake_timestamp": {
+              "type": [
+                "timestamp_micro",
+                "null"
+              ],
+              "destination_column_name": "_olake_timestamp"
+            },
+            "_op_type": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "_op_type"
+            },
+            "created_at": {
+              "type": [
+                "timestamp"
+              ],
+              "destination_column_name": "created_at"
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "description"
+            },
+            "experiment_id": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "experiment_id"
+            },
+            "experiment_name": {
+              "type": [
+                "string"
+              ],
+              "destination_column_name": "experiment_name"
+            },
+            "id": {
+              "type": [
+                "integer"
+              ],
+              "destination_column_name": "id"
+            },
+            "status": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "destination_column_name": "status"
+            },
+            "updated_at": {
+              "type": [
+                "timestamp"
+              ],
+              "destination_column_name": "updated_at"
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh",
+          "incremental",
+          "cdc",
+          "strict_cdc"
+        ],
+        "source_defined_primary_key": [
+          "id"
+        ],
+        "available_cursor_fields": [
+          "experiment_id",
+          "experiment_name",
+          "description",
+          "status",
+          "created_at",
+          "updated_at",
+          "id"
+        ],
+        "sync_mode": "incremental",
+        "destination_database": "mysql:mixpanel",
+        "destination_table": "experiments",
+        "default_stream_properties": {
+          "normalization": true,
+          "append_mode": true
+        }
+      }
+    }
+  ]
+}

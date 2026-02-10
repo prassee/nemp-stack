@@ -205,6 +205,13 @@ podman-olake-cdc-sync-mysql:
 	-v $(CURDIR)/olake-config/config:/mnt/config \
 	olakego/source-mysql:latest sync --config /mnt/config/source.json --streams /mnt/config/streams_cdc.json --destination /mnt/config/destination.json 
 
+podman-olake-cdc-append-mysql:
+	podman run --rm \
+	--network nmt-stack_default \
+	--name source-mysql \
+	-v $(CURDIR)/olake-config/config:/mnt/config \
+	olakego/source-mysql:latest sync --config /mnt/config/source.json --streams /mnt/config/streams_cdc_append.json --destination /mnt/config/destination.json 	
+
 
 podman-olake-sync-state-mysql:
 	podman run --rm \
